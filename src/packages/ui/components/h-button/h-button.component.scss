@@ -1,16 +1,17 @@
 .h-button {
-  padding: 3rem 2rem;
-  font-size: 3rem;
-  border: none;
-  border-radius: 0.5rem;
-  background-color: #333;
-  color: white;
+  padding: 3rem 1rem;
+  font-size: 32px;
+  font-weight: 900;
+  border-radius: 5px;
+  background-color: #222;
+  color: #aaa;
   cursor: pointer;
   transition: background-color 0.3s ease;
   margin: 1.5rem;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
+  letter-spacing: -.02em;
 
   &:hover {
-    background-color: black;
+    background-color: #111;
   }
 }
