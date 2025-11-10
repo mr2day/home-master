@@ -18,10 +18,18 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
 
   private async startWebcam(): Promise<void> {
     try {
-      this.mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user' },
-        audio: false
-      });
+      // Try exact 2560x1440; if the camera refuses, fall back to "ideal"
+      const tryExact = { width: { exact: 2560 }, height: { exact: 1440 }, frameRate: { ideal: 30 } };
+      const tryIdeal = { width: { ideal: 2560 }, height: { ideal: 1440 }, frameRate: { ideal: 30 } };
+
+      let stream: MediaStream | null = null;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: tryExact, audio: false });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ video: tryIdeal, audio: false });
+      }
+
+      this.mediaStream = stream;
       this.videoElement.nativeElement.srcObject = this.mediaStream;
     } catch (error) {
       this.errorMessage = 'Unable to access webcam. Please check permissions.';

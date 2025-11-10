@@ -1,27 +1,30 @@
 .webcam-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-end;
   align-items: center;
   gap: 1rem;
   padding: 1rem;
 }
 
 .webcam-wrapper {
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
   width: 100%;
-  max-width: 600px;
-  aspect-ratio: 16 / 9;
-  border-radius: 1rem;
-  overflow: hidden;
-  margin-bottom: 1rem;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  height: 100%;
+  z-index: -1;
 }
 
 .webcam-video {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
 }
 
@@ -37,5 +40,9 @@
   text-align: center;
   font-weight: 500;
   max-width: 80%;
+}
+
+h-button {
+  margin-bottom: 2rem;
 }
 
