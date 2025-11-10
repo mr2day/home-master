@@ -2,16 +2,16 @@
   padding: 3rem 1rem;
   font-size: 32px;
   font-weight: 900;
-  border-radius: 5px;
+  border-radius: 10px;
   background-color: #222;
-  color: #aaa;
+  color: #999;
+  border: 1px solid #444;
   cursor: pointer;
   transition: background-color 0.3s ease;
-  margin: 1.5rem;
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.6);
   letter-spacing: -.02em;
 
   &:hover {
-    background-color: #111;
+    background-color: #272727;
   }
 }
