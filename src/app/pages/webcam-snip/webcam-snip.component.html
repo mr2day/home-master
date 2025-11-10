@@ -7,8 +7,16 @@
       playsinline
     ></video>
 
-    <div *ngIf="errorMessage" class="error-message">
-      {{ errorMessage }}
-    </div>
+    @if (errorMessage) {
+      <div class="error-message">
+        {{ errorMessage }}
+      </div>
+    }
   </div>
+  <h-button
+    [label]="'Snip'"
+    [size]="'lg'"
+    [ratio]="'rectangle'"
+    (asyncAction)="snip($event)"
+  ></h-button>
 </div>

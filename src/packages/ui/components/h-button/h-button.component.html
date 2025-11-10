@@ -1,3 +1,16 @@
-<button class="h-button">
-  {{ label }}
+<button class="h-button" [ngClass]="['h-button--' + size, 'h-button--' + ratio]" (click)="handleClick()" [disabled]="isLoading()">
+  <div class="h-button__content" [class.h-button__content--faded]="isLoading() || resultState()">
+    @for (word of labelWords(); track $index) {
+      <div class="h-button__word">{{ word }}</div>
+    }
+  </div>
+  @if (isLoading()) {
+    <div class="h-button__loader"></div>
+  }
+  @if (resultState() === 'success') {
+    <div class="h-button__result h-button__result--success">✓</div>
+  }
+  @if (resultState() === 'error') {
+    <div class="h-button__result h-button__result--error">✕</div>
+  }
 </button>
