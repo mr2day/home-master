@@ -1,0 +1,11 @@
+{
+  "name": "@home-master/ui",
+  "version": "1.0.0",
+  "description": "Home Master UI Component Library",
+  "main": "index.ts",
+  "exports": {
+    ".": {
+      "import": "./index.ts"
+    }
+  }
+}
