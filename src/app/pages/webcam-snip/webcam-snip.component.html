@@ -1,0 +1,14 @@
+<div class="webcam-container">
+  <div class="webcam-wrapper">
+    <video
+      #videoElement
+      class="webcam-video"
+      autoplay
+      playsinline
+    ></video>
+
+    <div *ngIf="errorMessage" class="error-message">
+      {{ errorMessage }}
+    </div>
+  </div>
+</div>
