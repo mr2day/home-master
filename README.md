@@ -1,59 +1,93 @@
-# HomeMaster
+# Home Master
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 20.3.9.
+A mobile-first Angular application for managing all kinds of household utilities and tasks.
 
-## Development server
+## Status
 
-To start a local development server, run:
+🚧 **Project in Progress** - Core infrastructure is set up, features coming soon.
 
+## Project Structure
+
+```
+home-master/
+├── src/
+│   ├── app/                    # Main application
+│   │   ├── pages/              # Page components
+│   │   │   ├── home/           # Home page with navigation
+│   │   │   └── webcam-snip/    # Webcam snapshot utility (WIP)
+│   │   ├── app.html
+│   │   ├── app.routes.ts       # Routing configuration
+│   │   └── app.ts
+│   ├── packages/
+│   │   └── ui/                 # Custom UI component library (@home-master/ui)
+│   │       ├── components/
+│   │       │   └── h-button/   # Custom button component
+│   │       ├── index.ts        # Package exports
+│   │       └── package.json
+│   └── styles.scss             # Global styles (dark theme)
+└── tsconfig.json               # TS config with @home-master/ui path alias
+```
+
+## Features
+
+### Current
+- ✅ Mobile-first dark theme
+- ✅ Custom UI component library (`@home-master/ui`)
+- ✅ Home page with navigation
+- ✅ Routing setup for feature pages
+- ✅ h-button custom component with styling
+
+### In Development
+- 🚧 Webcam Snip utility - Capture and save webcam snapshots
+
+## Custom UI Components
+
+Import components from the `@home-master/ui` package:
+
+```typescript
+import { HButtonComponent } from '@home-master/ui';
+
+// Use in template:
+// <h-button routerLink="/path">Label</h-button>
+```
+
+## Development
+
+### Prerequisites
+- Node.js (v18+)
+- Angular CLI
+
+### Setup
+```bash
+npm install
+```
+
+### Run Dev Server
 ```bash
 ng serve
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Navigate to `http://localhost:4200/`
 
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
+### Build
 ```bash
 ng build
 ```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+## Styling
 
-## Running unit tests
+- **Global styles**: `src/styles.scss` - Dark theme background
+- **Component styles**: Encapsulated SCSS files per component
+- **UI Package styles**: Centralized in `@home-master/ui` components
 
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
+## Architecture Notes
 
-```bash
-ng test
-```
+The `@home-master/ui` package is structured as an internal library within the project. All custom UI components are defined here and exported through a barrel export (`index.ts`). This allows for:
+- Centralized component management
+- Consistent styling across the app
+- Easy reusability
+- Clear separation of concerns
 
-## Running end-to-end tests
+---
 
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Built with ❤️ using Angular
