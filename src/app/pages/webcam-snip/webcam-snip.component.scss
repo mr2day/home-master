@@ -107,7 +107,11 @@
 }
 
 .focus-input {
-  width: 34px;
+  // Lock the total rendered width to the original size
+  // Original total = 34px content + 0.5rem L + 0.5rem R + 2px border
+  // Use border-box so padding changes won’t affect outer width.
+  box-sizing: border-box;
+  width: calc(34px + 1rem + 2px);
   padding: 0.5rem 0.25rem; // reduce horizontal padding to fit text
   background-color: #333;
   color: #999;
