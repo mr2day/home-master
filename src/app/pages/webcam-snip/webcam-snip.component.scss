@@ -108,7 +108,7 @@
 
 .focus-input {
   width: 34px;
-  padding: 0.5rem;
+  padding: 0.5rem 0.25rem; // reduce horizontal padding to fit text
   background-color: #333;
   color: #999;
   border: 1px solid #444;
