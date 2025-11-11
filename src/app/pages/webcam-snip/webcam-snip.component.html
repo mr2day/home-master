@@ -89,7 +89,7 @@
             id="shutter-speed-input"
             type="text"
             [value]="shutterSpeedValue()"
-            (change)="onShutterSpeedInputChange($event)"
+            readonly
             class="focus-input"
           />
           <button class="focus-btn" (click)="adjustShutterSpeedBy(-1)">-</button>
