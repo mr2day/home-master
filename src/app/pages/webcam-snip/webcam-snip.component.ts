@@ -1,4 +1,4 @@
-import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy, signal } from '@angular/core';
+import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy, signal, computed } from '@angular/core';
 import { HButtonComponent } from '@home-master/ui';
 
 @Component({
@@ -17,6 +17,7 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   shutterSpeedValue = signal(600);
   private exposureStops: number[] = [50, 100, 200, 350, 650, 1300, 2550, 5050];
   private exposureStopIndex = signal(0);
+  shutterLabel = computed(() => this.formatShutterLabel(this.shutterSpeedValue()));
   brightnessValue = signal(50);
   contrastValue = signal(50);
   exposureCompensationValue = signal(40);
@@ -270,6 +271,25 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     if (clamped === this.exposureStopIndex()) return;
     this.setExposureStopByIndex(clamped);
     await this.applyShutterSpeed(this.shutterSpeedValue());
+  }
+
+  private formatShutterLabel(us: number): string {
+    // Convert microseconds to a classic shutter fraction label like 1/200 s
+    const denomCandidates = [
+      20000, 10000, 8000, 6400, 5000, 4000, 3200, 2500, 2000, 1600, 1250, 1000,
+      800, 640, 500, 400, 320, 250, 200
+    ];
+    const denomApprox = Math.max(1, Math.round(1_000_000 / Math.max(1, us)));
+    let best = denomCandidates[0];
+    let bestDiff = Math.abs(best - denomApprox);
+    for (const d of denomCandidates) {
+      const diff = Math.abs(d - denomApprox);
+      if (diff < bestDiff) {
+        best = d;
+        bestDiff = diff;
+      }
+    }
+    return `1/${best} s`;
   }
 
   private getNearestExposureStop(value: number): number {
