@@ -80,6 +80,44 @@
   align-items: flex-end;
 }
 
+.color-knob {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  user-select: none;
+}
+
+.color-knob__dial {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, #2a2a2a 0%, #262626 60%, #222 100%);
+  border: 1px solid #444;
+  box-shadow: inset 0 2px 8px rgba(0,0,0,0.6);
+}
+
+.color-knob__indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 46%;
+  background: #999;
+  transform-origin: bottom center;
+  border-radius: 2px;
+}
+
+.color-knob__value {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #bbb;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .focus-control {
   display: flex;
   flex-direction: column;

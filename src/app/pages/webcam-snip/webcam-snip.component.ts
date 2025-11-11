@@ -21,6 +21,20 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   brightnessValue = signal(50);
   contrastValue = signal(50);
   exposureCompensationValue = signal(40);
+  // Color temperature (Kelvin)
+  colorTemperatureValue = signal(4500);
+  private colorTempMin = 2800;
+  private colorTempMax = 6500;
+  private colorTempStep = 10;
+  @ViewChild('colorKnob') colorKnobRef!: ElementRef<HTMLDivElement>;
+  private knobActive = false;
+  colorKnobAngle = computed(() => {
+    const min = this.colorTempMin;
+    const max = this.colorTempMax;
+    const val = Math.max(min, Math.min(max, this.colorTemperatureValue()));
+    const fraction = (val - min) / (max - min);
+    return 45 + fraction * 270; // [45deg .. 315deg]
+  });
   resolutionValue = signal('');
   private mediaStream: MediaStream | null = null;
   private videoTrack: MediaStreamTrack | null = null;
@@ -109,6 +123,16 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
       });
       this.videoTrack = stream.getVideoTracks()[0];
       console.log(this.videoTrack.getCapabilities());
+      const caps: any = this.videoTrack.getCapabilities();
+      if (caps && caps.colorTemperature) {
+        this.colorTempMin = Math.floor(caps.colorTemperature.min ?? this.colorTempMin);
+        this.colorTempMax = Math.ceil(caps.colorTemperature.max ?? this.colorTempMax);
+        this.colorTempStep = Math.max(1, Math.round(caps.colorTemperature.step ?? this.colorTempStep));
+        const mid = Math.round((this.colorTempMin + this.colorTempMax) / 2);
+        this.colorTemperatureValue.set(this.roundColorTemp(mid));
+      } else {
+        this.colorTemperatureValue.set(this.roundColorTemp(4500));
+      }
 
       try {
         await this.videoTrack.applyConstraints({
@@ -152,6 +176,8 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
 
       // Ensure initial defaults are applied to the device after stream is ready
       await this.reassertManualFocusAndExposure();
+      // Apply initial color temperature
+      await this.applyColorTemperature(this.colorTemperatureValue());
     } catch (error) {
       this.errorMessage = 'Unable to access webcam. Please check permissions.';
       console.error('Webcam error:', error);
@@ -198,6 +224,13 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
       });
     } catch (e) {
       console.warn('Reapply brightness/contrast/exposure compensation failed:', e);
+    }
+    try {
+      await this.videoTrack.applyConstraints({
+        advanced: [{ whiteBalanceMode: 'manual', colorTemperature: this.colorTemperatureValue() } as any]
+      });
+    } catch (e) {
+      console.warn('Reapply white balance color temperature failed:', e);
     }
   }
 
@@ -412,6 +445,62 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
 
   async adjustContrastBy(delta: number): Promise<void> {
     await this.applyContrast(this.contrastValue() + delta);
+  }
+
+  private roundColorTemp(val: number): number {
+    const clamped = Math.max(this.colorTempMin, Math.min(this.colorTempMax, val));
+    const step = this.colorTempStep;
+    return Math.round(clamped / step) * step;
+  }
+
+  async applyColorTemperature(kelvin: number): Promise<void> {
+    if (!this.videoTrack) return;
+    const rounded = this.roundColorTemp(kelvin);
+    this.colorTemperatureValue.set(rounded);
+    try {
+      await this.videoTrack.applyConstraints({
+        advanced: [{ whiteBalanceMode: 'manual', colorTemperature: rounded } as any]
+      });
+    } catch (e) {
+      console.error('Failed to set color temperature:', e);
+    }
+  }
+
+  // Color temperature knob interactions
+  onColorKnobPointerDown(ev: PointerEvent): void {
+    if (!this.colorKnobRef) return;
+    this.knobActive = true;
+    (ev.target as Element).setPointerCapture?.(ev.pointerId);
+    this.updateColorKnobFromEvent(ev);
+  }
+
+  onColorKnobPointerMove(ev: PointerEvent): void {
+    if (!this.knobActive) return;
+    this.updateColorKnobFromEvent(ev);
+  }
+
+  onColorKnobPointerUp(ev: PointerEvent): void {
+    if (!this.knobActive) return;
+    this.knobActive = false;
+    (ev.target as Element).releasePointerCapture?.(ev.pointerId);
+  }
+
+  private updateColorKnobFromEvent(ev: PointerEvent): void {
+    const el = this.colorKnobRef.nativeElement;
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = ev.clientX - cx;
+    const dy = ev.clientY - cy;
+    let angle = Math.atan2(dy, dx) * 180 / Math.PI; // -180..180
+    if (angle < 0) angle += 360; // 0..360
+    // Allowed arc [45..315] maps to [0..1]
+    let clampedAngle = angle;
+    if (angle < 45) clampedAngle = 45;
+    if (angle > 315) clampedAngle = 315;
+    const fraction = (clampedAngle - 45) / 270;
+    const value = this.colorTempMin + fraction * (this.colorTempMax - this.colorTempMin);
+    this.applyColorTemperature(value);
   }
 
   async applyExposureCompensation(compensation: number): Promise<void> {

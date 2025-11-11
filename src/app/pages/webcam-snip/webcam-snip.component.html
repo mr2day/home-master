@@ -109,6 +109,16 @@
           <button class="focus-btn" (click)="adjustContrastBy(-1)">-</button>
         </div>
       </div>
+      <div class="color-knob" #colorKnob
+           (pointerdown)="onColorKnobPointerDown($event)"
+           (pointermove)="onColorKnobPointerMove($event)"
+           (pointerup)="onColorKnobPointerUp($event)"
+           (pointercancel)="onColorKnobPointerUp($event)">
+        <div class="color-knob__dial">
+          <div class="color-knob__indicator" [style.transform]="'rotate(' + colorKnobAngle() + 'deg)'"></div>
+          <div class="color-knob__value">{{ colorTemperatureValue() }} K</div>
+        </div>
+      </div>
       <div class="action-controls">
         <div class="record-info">
           @if (isRecording()) {
