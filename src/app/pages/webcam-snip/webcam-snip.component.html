@@ -68,11 +68,14 @@
             (change)="onResolutionInputChange($event)"
             class="resolution-select"
           >
-            <option value="2592x1944">2592x1944</option>
-            <option value="2560x1440">2560x1440</option>
-            <option value="1920x1080">1920x1080</option>
-            <option value="1280x720">1280x720</option>
-            <option value="640x480">640x480</option>
+            @for (res of availableResolutions(); track $index) {
+              <option 
+                [value]="res.width + 'x' + res.height"
+                [selected]="(res.width + 'x' + res.height) === resolutionValue()"
+              >
+                {{ res.width + 'x' + res.height }}
+              </option>
+            }
           </select>
         </div>
       </div>
@@ -109,7 +112,7 @@
       <div class="action-controls">
         <div class="record-info">
           @if (isRecording()) {
-            <span class="recording-indicator">● Recording</span>
+            <span class="recording-indicator"><span class="recording-dot"></span> Recording</span>
             <span class="recording-time">{{ recordingTime() }}</span>
           }
         </div>
@@ -118,13 +121,13 @@
             [label]="isRecording() ? 'Stop' : 'Record'"
             [size]="'sm'"
             [ratio]="'square'"
-            (click)="toggleRecording()"
+            [action]="toggleRecordingAction"
           ></h-button>
           <h-button
             [label]="'Snip'"
             [size]="'md'"
             [ratio]="'square'"
-            (asyncAction)="snip($event)"
+            [action]="snip"
           ></h-button>
         </div>
       </div>

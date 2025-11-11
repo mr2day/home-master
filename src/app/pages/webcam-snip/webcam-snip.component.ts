@@ -12,12 +12,13 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   errorMessage: string = '';
   isRecording = signal(false);
   recordingTime = signal('00:00');
+  availableResolutions = signal<{ width: number; height: number }[]>([]);
   focusValue = signal(250);
   shutterSpeedValue = signal(600);
   brightnessValue = signal(50);
   contrastValue = signal(50);
   exposureCompensationValue = signal(40);
-  resolutionValue = signal('2592x1944');
+  resolutionValue = signal('');
   private mediaStream: MediaStream | null = null;
   private videoTrack: MediaStreamTrack | null = null;
   private mediaRecorder: MediaRecorder | null = null;
@@ -32,33 +33,74 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     { width: 640, height: 480 }
   ];
 
+  // Action used by h-button to toggle recording with loader/result UI
+  toggleRecordingAction = async (): Promise<void> => {
+    this.toggleRecording();
+  };
+
   ngAfterViewInit(): void {
     this.startWebcam();
   }
 
+  private formatResolution(res: { width: number; height: number }): string {
+    return `${res.width}x${res.height}`;
+  }
+
+  private async probeAvailableResolutions(): Promise<{ width: number; height: number }[]> {
+    const available: { width: number; height: number }[] = [];
+    for (const res of this.supportedResolutions) {
+      try {
+        const testStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { exact: res.width }, height: { exact: res.height }, frameRate: { ideal: 30 } },
+          audio: false
+        });
+        // If successful, immediately stop and record availability
+        testStream.getTracks().forEach(t => t.stop());
+        available.push(res);
+        console.log(`Resolution supported: ${this.formatResolution(res)}`);
+      } catch {
+        console.log(`Resolution ${res.width}x${res.height} not supported`);
+      }
+    }
+    return available;
+  }
+
+  private pickDefaultResolution(available: { width: number; height: number }[]): { width: number; height: number } | null {
+    if (available.length === 0) return null;
+    const preferred = available.find(r => r.width === 1280 && r.height === 720);
+    if (preferred) return preferred;
+    // Find next smaller than 1280x720, based on supportedResolutions (already sorted high -> low)
+    for (const candidate of this.supportedResolutions) {
+      if (candidate.width <= 1280 && candidate.height <= 720) {
+        const found = available.find(r => r.width === candidate.width && r.height === candidate.height);
+        if (found) return found;
+      }
+    }
+    // Fallback to first available (highest)
+    return available[0];
+  }
+
   private async startWebcam(): Promise<void> {
     try {
-      let stream: MediaStream | null = null;
-      let initialResolution = '';
-      for (const res of this.supportedResolutions) {
-        try {
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { exact: res.width }, height: { exact: res.height }, frameRate: { ideal: 30 } },
-            audio: false
-          });
-          initialResolution = `${res.width}x${res.height}`;
-          console.log(`Camera initialized with ${initialResolution}`);
-          break;
-        } catch {
-          console.log(`Resolution ${res.width}x${res.height} not supported`);
-        }
-      }
+      // Probe all supported resolutions
+      const available = await this.probeAvailableResolutions();
 
-      if (!stream) {
+      // Pick default resolution: prefer 1280x720, else next smaller, else first available
+      const chosen = this.pickDefaultResolution(available);
+      if (!chosen) {
         throw new Error('No supported resolution found');
       }
-
+      const initialResolution = this.formatResolution(chosen);
+      // Set the selected value BEFORE populating options/rendering to avoid initial max selection
       this.resolutionValue.set(initialResolution);
+      // Now publish available options for the select
+      this.availableResolutions.set(available);
+
+      // Open the actual stream at the chosen resolution
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { exact: chosen.width }, height: { exact: chosen.height }, frameRate: { ideal: 30 } },
+        audio: false
+      });
       this.videoTrack = stream.getVideoTracks()[0];
       console.log(this.videoTrack.getCapabilities());
 
@@ -321,7 +363,7 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     this.applyResolution(value);
   }
 
-  async snip(actionPromise: Promise<void>): Promise<void> {
+  async snip(): Promise<void> {
     try {
       const video = this.videoElement.nativeElement;
       const canvas = document.createElement('canvas');
@@ -347,7 +389,6 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
         new ClipboardItem({ 'image/png': blob })
       ]);
       this.errorMessage = '';
-      await actionPromise;
     } catch (error) {
       this.errorMessage = error instanceof Error ? error.message : 'Unable to copy to clipboard.';
       console.error('Snip error:', error);

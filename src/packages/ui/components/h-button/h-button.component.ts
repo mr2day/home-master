@@ -1,4 +1,5 @@
-import { Component, Input, computed, signal, Output, EventEmitter } from '@angular/core';
+import { Component, Input, computed, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { NgClass } from '@angular/common';
 
 @Component({
@@ -11,7 +12,8 @@ export class HButtonComponent {
   @Input() label: string = '';
   @Input() size: 'xs' | 'sm' | 'md' | 'lg' = 'lg';
   @Input() ratio: 'square' | 'rectangle' = 'rectangle';
-  @Output() asyncAction = new EventEmitter<Promise<void>>();
+  @Input() action?: () => Promise<void>;
+  @Input() routerLink?: string | any[];
 
   labelWords = computed(() => {
     if (this.ratio === 'square') {
@@ -23,6 +25,8 @@ export class HButtonComponent {
   isLoading = signal(false);
   resultState = signal<'success' | 'error' | null>(null);
 
+  constructor(private router: Router) {}
+
   async handleClick(): Promise<void> {
     if (this.isLoading()) return;
 
@@ -31,22 +35,25 @@ export class HButtonComponent {
     this.resultState.set(null);
 
     try {
-      const promise = new Promise<void>((resolve) => {
-        this.asyncAction.emit(new Promise<void>((res) => {
-          setTimeout(() => {
-            const elapsed = Date.now() - startTime;
-            const minTime = Math.max(0, 300 - elapsed);
-            setTimeout(() => {
-              res();
-              resolve();
-            }, minTime);
-          }, 0);
-        }));
-      });
+      if (this.action) {
+        await this.action();
+      }
 
-      await promise;
+      const elapsed = Date.now() - startTime;
+      const minTime = Math.max(0, 300 - elapsed);
+      if (minTime > 0) {
+        await new Promise<void>((resolve) => setTimeout(resolve, minTime));
+      }
+
       this.isLoading.set(false);
       this.resultState.set('success');
+      if (this.routerLink) {
+        if (typeof this.routerLink === 'string') {
+          await this.router.navigateByUrl(this.routerLink);
+        } else if (Array.isArray(this.routerLink)) {
+          await this.router.navigate(this.routerLink as any[]);
+        }
+      }
       setTimeout(() => {
         this.resultState.set(null);
       }, 2000);

@@ -139,7 +139,19 @@
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  padding-right: 1.5rem;
+  // Remove native arrow and use custom SVG for better spacing control
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%23999' d='M0 0 L6 8 L12 0 Z'/></svg>");
+  background-repeat: no-repeat;
+  background-size: 0.5rem 0.35rem; // arrow size
+  background-position: right 0.6rem center; // slightly closer to right edge
+  padding-right: 1.65rem; // slightly more gap between text and arrow
+
+  &::-ms-expand {
+    display: none; // hide default arrow in IE/Edge Legacy
+  }
 
   &:focus {
     outline: none;
@@ -191,6 +203,9 @@
     font-weight: 600;
     font-size: 14px;
     animation: blink 1s ease-in-out infinite;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 
   .recording-time {
@@ -200,6 +215,15 @@
     min-width: 50px;
     text-align: right;
   }
+}
+
+.recording-dot {
+  width: 10px;
+  height: 10px;
+  background-color: #f44336;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 8px rgba(244, 67, 54, 0.7);
 }
 
 .buttons {
