@@ -155,6 +155,38 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  private async reassertManualFocusAndExposure(): Promise<void> {
+    if (!this.videoTrack) return;
+    try {
+      await this.videoTrack.applyConstraints({
+        advanced: [{ focusMode: 'manual' } as any]
+      });
+    } catch (e) {
+      console.warn('Reassert focus manual mode failed:', e);
+    }
+    try {
+      await this.videoTrack.applyConstraints({
+        advanced: [{ exposureMode: 'manual' } as any]
+      });
+    } catch (e) {
+      console.warn('Reassert exposure manual mode failed:', e);
+    }
+    try {
+      await this.videoTrack.applyConstraints({
+        advanced: [{ focusDistance: this.focusValue() } as any]
+      });
+    } catch (e) {
+      console.warn('Reapply focus distance failed:', e);
+    }
+    try {
+      await this.videoTrack.applyConstraints({
+        advanced: [{ exposureTime: this.shutterSpeedValue() } as any]
+      });
+    } catch (e) {
+      console.warn('Reapply exposure time failed:', e);
+    }
+  }
+
   private initializeRecorder(): void {
     if (!this.mediaStream) return;
     try {
@@ -229,7 +261,7 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     this.focusValue.set(clampedDistance);
     try {
       await this.videoTrack.applyConstraints({
-        advanced: [{ focusDistance: clampedDistance } as any]
+        advanced: [{ focusMode: 'manual', focusDistance: clampedDistance } as any]
       });
     } catch (error) {
       console.error('Failed to set focus distance:', error);
@@ -253,7 +285,7 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     this.shutterSpeedValue.set(clampedSpeed);
     try {
       await this.videoTrack.applyConstraints({
-        advanced: [{ exposureTime: clampedSpeed } as any]
+        advanced: [{ exposureMode: 'manual', exposureTime: clampedSpeed } as any]
       });
     } catch (error) {
       console.error('Failed to set shutter speed:', error);
@@ -410,6 +442,8 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
       });
       this.resolutionValue.set(resolutionStr);
       console.log(`Resolution changed to ${resolutionStr}`);
+      // Reassert manual modes and current values after changing resolution.
+      await this.reassertManualFocusAndExposure();
     } catch (error) {
       this.errorMessage = `Failed to apply resolution ${resolutionStr}`;
       console.error('Failed to set resolution:', error);
