@@ -18,7 +18,7 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   brightnessValue = signal(50);
   contrastValue = signal(50);
   exposureCompensationValue = signal(40);
-  resolutionValue = signal('2592x1944');
+  resolutionValue = signal('');
   private mediaStream: MediaStream | null = null;
   private videoTrack: MediaStreamTrack | null = null;
   private mediaRecorder: MediaRecorder | null = null;
@@ -84,7 +84,6 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     try {
       // Probe all supported resolutions
       const available = await this.probeAvailableResolutions();
-      this.availableResolutions.set(available);
 
       // Pick default resolution: prefer 1280x720, else next smaller, else first available
       const chosen = this.pickDefaultResolution(available);
@@ -92,13 +91,16 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
         throw new Error('No supported resolution found');
       }
       const initialResolution = this.formatResolution(chosen);
+      // Set the selected value BEFORE populating options/rendering to avoid initial max selection
+      this.resolutionValue.set(initialResolution);
+      // Now publish available options for the select
+      this.availableResolutions.set(available);
 
       // Open the actual stream at the chosen resolution
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { width: { exact: chosen.width }, height: { exact: chosen.height }, frameRate: { ideal: 30 } },
         audio: false
       });
-      this.resolutionValue.set(initialResolution);
       this.videoTrack = stream.getVideoTracks()[0];
       console.log(this.videoTrack.getCapabilities());
 
