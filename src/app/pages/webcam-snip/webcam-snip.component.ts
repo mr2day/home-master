@@ -40,6 +40,9 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   toggleRecordingAction = async (): Promise<void> => {
     this.toggleRecording();
   };
+  snipAction = async (): Promise<void> => {
+    await this.snip();
+  };
 
   ngAfterViewInit(): void {
     this.startWebcam();
