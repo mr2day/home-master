@@ -69,7 +69,12 @@
             class="resolution-select"
           >
             @for (res of availableResolutions(); track $index) {
-              <option [value]="res.width + 'x' + res.height">{{ res.width + 'x' + res.height }}</option>
+              <option 
+                [value]="res.width + 'x' + res.height"
+                [selected]="(res.width + 'x' + res.height) === resolutionValue()"
+              >
+                {{ res.width + 'x' + res.height }}
+              </option>
             }
           </select>
         </div>
