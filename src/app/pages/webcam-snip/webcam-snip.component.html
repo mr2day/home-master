@@ -17,7 +17,7 @@
     <div class="focus-control">
       <label for="focus-input">Focus</label>
       <div class="focus-input-group">
-        <button class="focus-btn" (click)="adjustFocusBy(1)">+</button>
+        <h-button [label]="'+'" [size]="'sm'" [ratio]="'square'" [action]="incFocusAction"></h-button>
         <input
           id="focus-input"
           type="text"
@@ -25,7 +25,7 @@
           (change)="onFocusInputChange($event)"
           class="focus-input"
         />
-        <button class="focus-btn" (click)="adjustFocusBy(-1)">-</button>
+        <h-button [label]="'-'" [size]="'sm'" [ratio]="'square'" [action]="decFocusAction"></h-button>
       </div>
     </div>
     <div class="focus-control">
@@ -84,7 +84,7 @@
       <div class="focus-control">
         <label for="shutter-speed-input">Shutter</label>
         <div class="focus-input-group">
-          <button class="focus-btn" (click)="adjustShutterSpeedBy(1)">+</button>
+          <h-button [label]="'+'" [size]="'sm'" [ratio]="'square'" [action]="incShutterAction"></h-button>
           <input
             id="shutter-speed-input"
             type="text"
@@ -92,7 +92,7 @@
             readonly
             class="focus-input"
           />
-          <button class="focus-btn" (click)="adjustShutterSpeedBy(-1)">-</button>
+          <h-button [label]="'-'" [size]="'sm'" [ratio]="'square'" [action]="decShutterAction"></h-button>
         </div>
       </div>
       <div class="focus-control" #contrastBlock>

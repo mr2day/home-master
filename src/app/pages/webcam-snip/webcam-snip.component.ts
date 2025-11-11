@@ -1,4 +1,5 @@
 import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy, signal, computed } from '@angular/core';
+import { CameraCoordinatorService } from '../../services/camera-coordinator.service';
 import { HButtonComponent } from '@home-master/ui';
 
 @Component({
@@ -61,6 +62,8 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   snipAction = async (): Promise<void> => {
     await this.snip();
   };
+
+  constructor(private camera: CameraCoordinatorService) {}
 
   ngAfterViewInit(): void {
     this.startWebcam();
@@ -137,6 +140,7 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
         audio: false
       });
       this.videoTrack = stream.getVideoTracks()[0];
+      this.camera.setTrack(this.videoTrack);
       console.log(this.videoTrack.getCapabilities());
       const caps: any = this.videoTrack.getCapabilities();
       if (caps && caps.colorTemperature) {
@@ -322,9 +326,8 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     const clampedDistance = Math.max(0, Math.min(1023, distance));
     this.focusValue.set(clampedDistance);
     try {
-      await this.videoTrack.applyConstraints({
-        advanced: [{ focusMode: 'manual', focusDistance: clampedDistance } as any]
-      });
+      const applied = await this.camera.applyPatch({ focusMode: 'manual', focusDistance: clampedDistance });
+      if (typeof applied.focusDistance === 'number') this.focusValue.set(applied.focusDistance);
     } catch (error) {
       console.error('Failed to set focus distance:', error);
     }
@@ -341,14 +344,21 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     this.applyFocusDistance(this.focusValue() + delta);
   }
 
+  // h-button actions for loader/success feedback
+  incFocusAction = async (): Promise<void> => {
+    await this.applyFocusDistance(this.focusValue() + 1);
+  };
+  decFocusAction = async (): Promise<void> => {
+    await this.applyFocusDistance(this.focusValue() - 1);
+  };
+
   async applyShutterSpeed(speed: number): Promise<void> {
     if (!this.videoTrack) return;
     const clampedSpeed = Math.max(1, Math.min(10000, speed));
     this.shutterSpeedValue.set(clampedSpeed);
     try {
-      await this.videoTrack.applyConstraints({
-        advanced: [{ exposureMode: 'manual', exposureTime: clampedSpeed } as any]
-      });
+      const applied = await this.camera.applyPatch({ exposureMode: 'manual', exposureTime: clampedSpeed });
+      if (typeof applied.exposureTime === 'number') this.shutterSpeedValue.set(applied.exposureTime);
     } catch (error) {
       console.error('Failed to set shutter speed:', error);
     }
@@ -370,6 +380,13 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     this.setExposureStopByIndex(clamped);
     await this.applyShutterSpeed(this.shutterSpeedValue());
   }
+
+  incShutterAction = async (): Promise<void> => {
+    await this.adjustShutterSpeedBy(1);
+  };
+  decShutterAction = async (): Promise<void> => {
+    await this.adjustShutterSpeedBy(-1);
+  };
 
   private formatShutterLabel(us: number): string {
     // Convert microseconds to a classic shutter fraction label like 1/200 s
@@ -420,9 +437,8 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     const clampedBrightness = Math.max(-64, Math.min(64, brightness));
     this.brightnessValue.set(clampedBrightness);
     try {
-      await this.videoTrack.applyConstraints({
-        advanced: [{ brightness: clampedBrightness } as any]
-      });
+      const applied = await this.camera.applyPatch({ brightness: clampedBrightness });
+      if (typeof applied.brightness === 'number') this.brightnessValue.set(applied.brightness);
     } catch (error) {
       console.error('Failed to set brightness:', error);
     }
@@ -444,9 +460,8 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     const clampedContrast = Math.max(0, Math.min(100, contrast));
     this.contrastValue.set(clampedContrast);
     try {
-      await this.videoTrack.applyConstraints({
-        advanced: [{ contrast: clampedContrast } as any]
-      });
+      const applied = await this.camera.applyPatch({ contrast: clampedContrast });
+      if (typeof applied.contrast === 'number') this.contrastValue.set(applied.contrast);
     } catch (error) {
       console.error('Failed to set contrast:', error);
     }
@@ -474,9 +489,11 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     const rounded = this.roundColorTemp(kelvin);
     this.colorTemperatureValue.set(rounded);
     try {
-      await this.videoTrack.applyConstraints({
-        advanced: [{ whiteBalanceMode: 'manual', colorTemperature: this.toDeviceColorTemp(rounded) } as any]
-      });
+      const applied = await this.camera.applyPatch({ whiteBalanceMode: 'manual', colorTemperature: this.toDeviceColorTemp(rounded) });
+      if (typeof applied.colorTemperature === 'number') {
+        // Keep user-facing value as rounded
+        this.colorTemperatureValue.set(rounded);
+      }
     } catch (e) {
       console.error('Failed to set color temperature:', e);
     }
@@ -581,9 +598,8 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     const clampedCompensation = Math.max(0, Math.min(128, compensation));
     this.exposureCompensationValue.set(clampedCompensation);
     try {
-      await this.videoTrack.applyConstraints({
-        advanced: [{ exposureCompensation: clampedCompensation } as any]
-      });
+      const applied = await this.camera.applyPatch({ exposureCompensation: clampedCompensation });
+      if (typeof applied.exposureCompensation === 'number') this.exposureCompensationValue.set(applied.exposureCompensation);
     } catch (error) {
       console.error('Failed to set exposure compensation:', error);
     }
