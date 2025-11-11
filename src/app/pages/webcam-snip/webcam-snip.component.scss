@@ -89,8 +89,8 @@
 
 .color-knob__dial {
   position: relative;
-  width: 90px;
-  height: 90px;
+  width: 72px;
+  height: 72px;
   border-radius: 50%;
   background: radial-gradient(circle at center, #2a2a2a 0%, #262626 60%, #222 100%);
   border: 1px solid #444;
@@ -100,13 +100,25 @@
 
 .color-knob__indicator {
   position: absolute;
-  top: 50%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform-origin: 50% 50%;
+  background: transparent;
+}
+
+.color-knob__indicator::after {
+  content: '';
+  position: absolute;
+  top: 6px; /* distance from top edge */
   left: 50%;
-  width: 2px;
-  height: 44%;
-  background: #999;
-  transform-origin: bottom center;
-  border-radius: 2px;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #bbb;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.2);
 }
 
 .color-knob__value {
