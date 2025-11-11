@@ -17,15 +17,24 @@
     <div class="focus-control">
       <label for="focus-input">Focus</label>
       <div class="focus-input-group">
-        <button class="focus-btn" (click)="adjustFocusBy(-1)">−</button>
-        <input
+        <h-button
+          [label]="'+'"
+          [size]="'xs'"
+          [ratio]="'square'"
+          (click)="adjustFocusBy(1)"
+        ></h-button>
+        <h-input
           id="focus-input"
           type="text"
           [value]="focusValue()"
           (change)="onFocusInputChange($event)"
-          class="focus-input"
-        />
-        <button class="focus-btn" (click)="adjustFocusBy(1)">+</button>
+        ></h-input>
+        <h-button
+          [label]="'-'"
+          [size]="'xs'"
+          [ratio]="'square'"
+          (click)="adjustFocusBy(-1)"
+        ></h-button>
       </div>
     </div>
     <div class="record-info">

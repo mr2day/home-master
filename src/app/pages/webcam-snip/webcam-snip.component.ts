@@ -1,9 +1,9 @@
 import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy, signal } from '@angular/core';
-import { HButtonComponent } from '@home-master/ui';
+import { HButtonComponent, HInputComponent } from '@home-master/ui';
 
 @Component({
   selector: 'app-webcam-snip',
-  imports: [HButtonComponent],
+  imports: [HButtonComponent, HInputComponent],
   templateUrl: './webcam-snip.component.html',
   styleUrl: './webcam-snip.component.scss'
 })
