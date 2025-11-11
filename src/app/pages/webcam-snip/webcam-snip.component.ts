@@ -1,4 +1,4 @@
-import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy, signal } from '@angular/core';
+import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy, signal, computed } from '@angular/core';
 import { HButtonComponent } from '@home-master/ui';
 
 @Component({
@@ -15,6 +15,9 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   availableResolutions = signal<{ width: number; height: number }[]>([]);
   focusValue = signal(250);
   shutterSpeedValue = signal(600);
+  private exposureStops: number[] = [50, 100, 200, 350, 650, 1300, 2550, 5050];
+  private exposureStopIndex = signal(0);
+  shutterLabel = computed(() => this.formatShutterLabel(this.shutterSpeedValue()));
   brightnessValue = signal(50);
   contrastValue = signal(50);
   exposureCompensationValue = signal(40);
@@ -36,6 +39,9 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   // Action used by h-button to toggle recording with loader/result UI
   toggleRecordingAction = async (): Promise<void> => {
     this.toggleRecording();
+  };
+  snipAction = async (): Promise<void> => {
+    await this.snip();
   };
 
   ngAfterViewInit(): void {
@@ -121,8 +127,11 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
       }
 
       try {
+        // Snap to nearest stop and apply
+        const nearest = this.getNearestExposureStop(this.shutterSpeedValue());
+        this.setExposureStopByValue(nearest);
         await this.videoTrack.applyConstraints({
-          advanced: [{ exposureTime: this.shutterSpeedValue() } as any]
+          advanced: [{ exposureTime: nearest } as any]
         });
       } catch (error) {
         console.warn('Manual exposure time not supported:', error);
@@ -240,7 +249,7 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
 
   async applyShutterSpeed(speed: number): Promise<void> {
     if (!this.videoTrack) return;
-    const clampedSpeed = Math.max(1.220703125, Math.min(10000, speed));
+    const clampedSpeed = Math.max(1, Math.min(10000, speed));
     this.shutterSpeedValue.set(clampedSpeed);
     try {
       await this.videoTrack.applyConstraints({
@@ -259,7 +268,56 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   }
 
   async adjustShutterSpeedBy(delta: number): Promise<void> {
-    await this.applyShutterSpeed(this.shutterSpeedValue() + delta * 50);
+    // Move to the next/previous stop
+    const nextIndex = this.exposureStopIndex() + delta;
+    const clamped = Math.max(0, Math.min(this.exposureStops.length - 1, nextIndex));
+    if (clamped === this.exposureStopIndex()) return;
+    this.setExposureStopByIndex(clamped);
+    await this.applyShutterSpeed(this.shutterSpeedValue());
+  }
+
+  private formatShutterLabel(us: number): string {
+    // Convert microseconds to a classic shutter fraction label like 1/200 s
+    const denomCandidates = [
+      20000, 10000, 8000, 6400, 5000, 4000, 3200, 2500, 2000, 1600, 1250, 1000,
+      800, 640, 500, 400, 320, 250, 200
+    ];
+    const denomApprox = Math.max(1, Math.round(1_000_000 / Math.max(1, us)));
+    let best = denomCandidates[0];
+    let bestDiff = Math.abs(best - denomApprox);
+    for (const d of denomCandidates) {
+      const diff = Math.abs(d - denomApprox);
+      if (diff < bestDiff) {
+        best = d;
+        bestDiff = diff;
+      }
+    }
+    return `1/${best}`;
+  }
+
+  private getNearestExposureStop(value: number): number {
+    let nearest = this.exposureStops[0];
+    let minDiff = Math.abs(value - nearest);
+    for (const s of this.exposureStops) {
+      const d = Math.abs(value - s);
+      if (d < minDiff) {
+        nearest = s;
+        minDiff = d;
+      }
+    }
+    return nearest;
+  }
+
+  private setExposureStopByValue(value: number): void {
+    const idx = this.exposureStops.findIndex((v) => v === value);
+    this.exposureStopIndex.set(idx >= 0 ? idx : 0);
+    this.shutterSpeedValue.set(value);
+  }
+
+  private setExposureStopByIndex(index: number): void {
+    const clamped = Math.max(0, Math.min(this.exposureStops.length - 1, index));
+    this.exposureStopIndex.set(clamped);
+    this.shutterSpeedValue.set(this.exposureStops[clamped]);
   }
 
   async applyBrightness(brightness: number): Promise<void> {

@@ -88,8 +88,8 @@
           <input
             id="shutter-speed-input"
             type="text"
-            [value]="shutterSpeedValue()"
-            (change)="onShutterSpeedInputChange($event)"
+            [value]="shutterLabel()"
+            readonly
             class="focus-input"
           />
           <button class="focus-btn" (click)="adjustShutterSpeedBy(-1)">-</button>
@@ -127,7 +127,7 @@
             [label]="'Snip'"
             [size]="'md'"
             [ratio]="'square'"
-            [action]="snip"
+            [action]="snipAction"
           ></h-button>
         </div>
       </div>
