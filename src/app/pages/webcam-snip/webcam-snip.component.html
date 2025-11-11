@@ -68,11 +68,9 @@
             (change)="onResolutionInputChange($event)"
             class="resolution-select"
           >
-            <option value="2592x1944">2592x1944</option>
-            <option value="2560x1440">2560x1440</option>
-            <option value="1920x1080">1920x1080</option>
-            <option value="1280x720">1280x720</option>
-            <option value="640x480">640x480</option>
+            @for (res of availableResolutions(); track $index) {
+              <option [value]="res.width + 'x' + res.height">{{ res.width + 'x' + res.height }}</option>
+            }
           </select>
         </div>
       </div>
