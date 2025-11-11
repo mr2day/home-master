@@ -191,6 +191,9 @@
     font-weight: 600;
     font-size: 14px;
     animation: blink 1s ease-in-out infinite;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 
   .recording-time {
@@ -200,6 +203,15 @@
     min-width: 50px;
     text-align: right;
   }
+}
+
+.recording-dot {
+  width: 10px;
+  height: 10px;
+  background-color: #f44336;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 8px rgba(244, 67, 54, 0.7);
 }
 
 .buttons {

@@ -109,7 +109,7 @@
       <div class="action-controls">
         <div class="record-info">
           @if (isRecording()) {
-            <span class="recording-indicator">● Recording</span>
+            <span class="recording-indicator"><span class="recording-dot"></span> Recording</span>
             <span class="recording-time">{{ recordingTime() }}</span>
           }
         </div>
@@ -118,13 +118,13 @@
             [label]="isRecording() ? 'Stop' : 'Record'"
             [size]="'sm'"
             [ratio]="'square'"
-            (click)="toggleRecording()"
+            [action]="toggleRecordingAction"
           ></h-button>
           <h-button
             [label]="'Snip'"
             [size]="'md'"
             [ratio]="'square'"
-            (asyncAction)="snip($event)"
+            [action]="snip"
           ></h-button>
         </div>
       </div>

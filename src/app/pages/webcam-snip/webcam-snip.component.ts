@@ -32,6 +32,11 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     { width: 640, height: 480 }
   ];
 
+  // Action used by h-button to toggle recording with loader/result UI
+  toggleRecordingAction = async (): Promise<void> => {
+    this.toggleRecording();
+  };
+
   ngAfterViewInit(): void {
     this.startWebcam();
   }
@@ -321,7 +326,7 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     this.applyResolution(value);
   }
 
-  async snip(actionPromise: Promise<void>): Promise<void> {
+  async snip(): Promise<void> {
     try {
       const video = this.videoElement.nativeElement;
       const canvas = document.createElement('canvas');
@@ -347,7 +352,6 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
         new ClipboardItem({ 'image/png': blob })
       ]);
       this.errorMessage = '';
-      await actionPromise;
     } catch (error) {
       this.errorMessage = error instanceof Error ? error.message : 'Unable to copy to clipboard.';
       console.error('Snip error:', error);
