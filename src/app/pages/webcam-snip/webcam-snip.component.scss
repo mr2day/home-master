@@ -253,7 +253,7 @@
   align-items: flex-end;
   height: auto;
   justify-content: flex-end;
-  min-height: 0.25rem; // reduce placeholder height to avoid large gap
+  min-height: 0; // no extra space below knob
 
   .recording-indicator {
     color: #f44336;

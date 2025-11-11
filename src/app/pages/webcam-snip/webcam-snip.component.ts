@@ -363,6 +363,7 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
 
   async adjustShutterSpeedBy(delta: number): Promise<void> {
     // Move to the next/previous stop
+    this.syncExposureStopFromSettings();
     const nextIndex = this.exposureStopIndex() + delta;
     const clamped = Math.max(0, Math.min(this.exposureStops.length - 1, nextIndex));
     if (clamped === this.exposureStopIndex()) return;
@@ -495,13 +496,11 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     this.knobActive = true;
     (ev.target as Element).setPointerCapture?.(ev.pointerId);
     this.updateColorKnobFromEvent(ev);
-    this.centerColorKnob();
   }
 
   onColorKnobPointerMove(ev: PointerEvent): void {
     if (!this.knobActive) return;
     this.updateColorKnobFromEvent(ev);
-    this.centerColorKnob();
   }
 
   async onColorKnobPointerUp(ev: PointerEvent): Promise<void> {
@@ -544,16 +543,33 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
       const totalSpan = bottomRect.top - topRect.bottom;
       if (totalSpan <= 0) return;
       const desiredTopSpace = (totalSpan - knobRect.height) / 2;
-      const container = knobEl.parentElement as HTMLElement;
-      const gapStr = getComputedStyle(container).rowGap || '0';
-      const gap = parseFloat(gapStr) || 0;
-      const marginTopPx = Math.max(0, desiredTopSpace - gap);
+      const marginTopPx = Math.max(0, desiredTopSpace);
       knobEl.style.marginTop = `${marginTopPx}px`;
       knobEl.style.marginBottom = '0px';
     } catch {
       // no-op
     }
   };
+
+  private syncExposureStopFromSettings(): void {
+    try {
+      if (!this.videoTrack) return;
+      const settings = (this.videoTrack as any).getSettings?.() || {};
+      const current = typeof settings.exposureTime === 'number' ? settings.exposureTime : this.shutterSpeedValue();
+      let nearestIdx = 0;
+      let minDiff = Math.abs(current - this.exposureStops[0]);
+      for (let i = 0; i < this.exposureStops.length; i++) {
+        const d = Math.abs(current - this.exposureStops[i]);
+        if (d < minDiff) {
+          minDiff = d;
+          nearestIdx = i;
+        }
+      }
+      this.exposureStopIndex.set(nearestIdx);
+    } catch {
+      // ignore
+    }
+  }
 
   private toDeviceColorTemp(userKelvin: number): number {
     // Invert mapping to align visual effect: user higher K should appear cooler on this device
