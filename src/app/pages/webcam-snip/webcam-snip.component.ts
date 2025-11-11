@@ -289,7 +289,7 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
         bestDiff = diff;
       }
     }
-    return `1/${best} s`;
+    return `1/${best}`;
   }
 
   private getNearestExposureStop(value: number): number {
