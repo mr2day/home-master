@@ -13,6 +13,10 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   isRecording = signal(false);
   recordingTime = signal('00:00');
   focusValue = signal(250);
+  shutterSpeedValue = signal(600);
+  brightnessValue = signal(50);
+  contrastValue = signal(50);
+  exposureCompensationValue = signal(40);
   private mediaStream: MediaStream | null = null;
   private videoTrack: MediaStreamTrack | null = null;
   private mediaRecorder: MediaRecorder | null = null;
@@ -44,6 +48,30 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
         });
       } catch (error) {
         console.warn('Manual focus mode not supported:', error);
+      }
+
+      try {
+        await this.videoTrack.applyConstraints({
+          advanced: [{ exposureMode: 'manual' } as any]
+        });
+      } catch (error) {
+        console.warn('Manual exposure mode not supported:', error);
+      }
+
+      try {
+        await this.videoTrack.applyConstraints({
+          advanced: [{ exposureTime: this.shutterSpeedValue() } as any]
+        });
+      } catch (error) {
+        console.warn('Manual exposure time not supported:', error);
+      }
+
+      try {
+        await this.videoTrack.applyConstraints({
+          advanced: [{ brightness: this.brightnessValue(), contrast: this.contrastValue(), exposureCompensation: this.exposureCompensationValue() } as any]
+        });
+      } catch (error) {
+        console.warn('Manual brightness/contrast/exposure compensation not supported:', error);
       }
 
       this.mediaStream = stream;
@@ -146,6 +174,102 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
 
   adjustFocusBy(delta: number): void {
     this.applyFocusDistance(this.focusValue() + delta);
+  }
+
+  async applyShutterSpeed(speed: number): Promise<void> {
+    if (!this.videoTrack) return;
+    const clampedSpeed = Math.max(1.220703125, Math.min(10000, speed));
+    this.shutterSpeedValue.set(clampedSpeed);
+    try {
+      await this.videoTrack.applyConstraints({
+        advanced: [{ exposureTime: clampedSpeed } as any]
+      });
+    } catch (error) {
+      console.error('Failed to set shutter speed:', error);
+    }
+  }
+
+  onShutterSpeedInputChange(event: Event): void {
+    const value = parseFloat((event.target as HTMLInputElement).value);
+    if (!isNaN(value)) {
+      this.applyShutterSpeed(value);
+    }
+  }
+
+  async adjustShutterSpeedBy(delta: number): Promise<void> {
+    await this.applyShutterSpeed(this.shutterSpeedValue() + delta * 50);
+  }
+
+  async applyBrightness(brightness: number): Promise<void> {
+    if (!this.videoTrack) return;
+    const clampedBrightness = Math.max(-64, Math.min(64, brightness));
+    this.brightnessValue.set(clampedBrightness);
+    try {
+      await this.videoTrack.applyConstraints({
+        advanced: [{ brightness: clampedBrightness } as any]
+      });
+    } catch (error) {
+      console.error('Failed to set brightness:', error);
+    }
+  }
+
+  onBrightnessInputChange(event: Event): void {
+    const value = parseInt((event.target as HTMLInputElement).value, 10);
+    if (!isNaN(value)) {
+      this.applyBrightness(value);
+    }
+  }
+
+  async adjustBrightnessBy(delta: number): Promise<void> {
+    await this.applyBrightness(this.brightnessValue() + delta);
+  }
+
+  async applyContrast(contrast: number): Promise<void> {
+    if (!this.videoTrack) return;
+    const clampedContrast = Math.max(0, Math.min(100, contrast));
+    this.contrastValue.set(clampedContrast);
+    try {
+      await this.videoTrack.applyConstraints({
+        advanced: [{ contrast: clampedContrast } as any]
+      });
+    } catch (error) {
+      console.error('Failed to set contrast:', error);
+    }
+  }
+
+  onContrastInputChange(event: Event): void {
+    const value = parseInt((event.target as HTMLInputElement).value, 10);
+    if (!isNaN(value)) {
+      this.applyContrast(value);
+    }
+  }
+
+  async adjustContrastBy(delta: number): Promise<void> {
+    await this.applyContrast(this.contrastValue() + delta);
+  }
+
+  async applyExposureCompensation(compensation: number): Promise<void> {
+    if (!this.videoTrack) return;
+    const clampedCompensation = Math.max(0, Math.min(128, compensation));
+    this.exposureCompensationValue.set(clampedCompensation);
+    try {
+      await this.videoTrack.applyConstraints({
+        advanced: [{ exposureCompensation: clampedCompensation } as any]
+      });
+    } catch (error) {
+      console.error('Failed to set exposure compensation:', error);
+    }
+  }
+
+  onExposureCompensationInputChange(event: Event): void {
+    const value = parseInt((event.target as HTMLInputElement).value, 10);
+    if (!isNaN(value)) {
+      this.applyExposureCompensation(value);
+    }
+  }
+
+  async adjustExposureCompensationBy(delta: number): Promise<void> {
+    await this.applyExposureCompensation(this.exposureCompensationValue() + delta);
   }
 
   async snip(actionPromise: Promise<void>): Promise<void> {

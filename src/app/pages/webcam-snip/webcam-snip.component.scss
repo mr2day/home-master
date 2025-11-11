@@ -53,6 +53,20 @@
   align-items: flex-end;
 }
 
+.controls-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  width: auto;
+}
+
+.action-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
 .focus-control {
   display: flex;
   flex-direction: column;
