@@ -95,7 +95,7 @@
           <button class="focus-btn" (click)="adjustShutterSpeedBy(-1)">-</button>
         </div>
       </div>
-      <div class="focus-control">
+      <div class="focus-control" #contrastBlock>
         <label for="contrast-input">Contrast</label>
         <div class="focus-input-group">
           <button class="focus-btn" (click)="adjustContrastBy(1)">+</button>
@@ -119,7 +119,7 @@
           <div class="color-knob__value">{{ colorTemperatureValue() }}</div>
         </div>
       </div>
-      <div class="action-controls">
+      <div class="action-controls" #actionControls>
         <div class="record-info">
           @if (isRecording()) {
             <span class="recording-indicator"><span class="recording-dot"></span> Recording</span>

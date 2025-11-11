@@ -9,6 +9,8 @@ import { HButtonComponent } from '@home-master/ui';
 })
 export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   @ViewChild('videoElement') videoElement!: ElementRef<HTMLVideoElement>;
+  @ViewChild('contrastBlock') contrastBlockRef!: ElementRef<HTMLDivElement>;
+  @ViewChild('actionControls') actionControlsRef!: ElementRef<HTMLDivElement>;
   errorMessage: string = '';
   isRecording = signal(false);
   recordingTime = signal('00:00');
@@ -43,6 +45,7 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   private recordingStartTime: number = 0;
   private recordingTimer: number | null = null;
   private wbReassertTimer: number | null = null;
+  private resizeObserver?: ResizeObserver;
   private supportedResolutions = [
     { width: 2592, height: 1944 },
     { width: 2560, height: 1440 },
@@ -61,6 +64,17 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     this.startWebcam();
+    // Center knob after initial layout
+    requestAnimationFrame(() => this.centerColorKnob());
+    // Observe layout changes on relevant blocks
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => this.centerColorKnob());
+      const ac = this.actionControlsRef?.nativeElement;
+      const cb = this.contrastBlockRef?.nativeElement;
+      if (ac) this.resizeObserver.observe(ac);
+      if (cb) this.resizeObserver.observe(cb);
+    }
+    window.addEventListener('resize', this.centerColorKnob);
   }
 
   private formatResolution(res: { width: number; height: number }): string {
@@ -481,11 +495,13 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     this.knobActive = true;
     (ev.target as Element).setPointerCapture?.(ev.pointerId);
     this.updateColorKnobFromEvent(ev);
+    this.centerColorKnob();
   }
 
   onColorKnobPointerMove(ev: PointerEvent): void {
     if (!this.knobActive) return;
     this.updateColorKnobFromEvent(ev);
+    this.centerColorKnob();
   }
 
   async onColorKnobPointerUp(ev: PointerEvent): Promise<void> {
@@ -494,6 +510,7 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     (ev.target as Element).releasePointerCapture?.(ev.pointerId);
     // Reassert manual focus/exposure in case device toggled modes during WB changes
     await this.reassertManualFocusAndExposure();
+    this.centerColorKnob();
   }
 
   private updateColorKnobFromEvent(ev: PointerEvent): void {
@@ -513,6 +530,30 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     const value = this.colorTempMin + fraction * (this.colorTempMax - this.colorTempMin);
     this.applyColorTemperature(value);
   }
+
+  // Center the knob vertically between contrast block and action controls
+  centerColorKnob = (): void => {
+    try {
+      const knobEl = this.colorKnobRef?.nativeElement;
+      const topEl = this.contrastBlockRef?.nativeElement;
+      const bottomEl = this.actionControlsRef?.nativeElement;
+      if (!knobEl || !topEl || !bottomEl) return;
+      const topRect = topEl.getBoundingClientRect();
+      const bottomRect = bottomEl.getBoundingClientRect();
+      const knobRect = knobEl.getBoundingClientRect();
+      const totalSpan = bottomRect.top - topRect.bottom;
+      if (totalSpan <= 0) return;
+      const desiredTopSpace = (totalSpan - knobRect.height) / 2;
+      const container = knobEl.parentElement as HTMLElement;
+      const gapStr = getComputedStyle(container).rowGap || '0';
+      const gap = parseFloat(gapStr) || 0;
+      const marginTopPx = Math.max(0, desiredTopSpace - gap);
+      knobEl.style.marginTop = `${marginTopPx}px`;
+      knobEl.style.marginBottom = '0px';
+    } catch {
+      // no-op
+    }
+  };
 
   private toDeviceColorTemp(userKelvin: number): number {
     // Invert mapping to align visual effect: user higher K should appear cooler on this device
@@ -614,6 +655,10 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     if (this.wbReassertTimer !== null) {
       clearTimeout(this.wbReassertTimer);
     }
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+    }
+    window.removeEventListener('resize', this.centerColorKnob);
     if (this.isRecording()) {
       this.stopRecording();
     }
