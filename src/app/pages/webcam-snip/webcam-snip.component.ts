@@ -149,6 +149,9 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
       this.videoElement.nativeElement.srcObject = this.mediaStream;
 
       this.initializeRecorder();
+
+      // Ensure initial defaults are applied to the device after stream is ready
+      await this.reassertManualFocusAndExposure();
     } catch (error) {
       this.errorMessage = 'Unable to access webcam. Please check permissions.';
       console.error('Webcam error:', error);
@@ -184,6 +187,17 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
       });
     } catch (e) {
       console.warn('Reapply exposure time failed:', e);
+    }
+    try {
+      await this.videoTrack.applyConstraints({
+        advanced: [{
+          brightness: this.brightnessValue(),
+          contrast: this.contrastValue(),
+          exposureCompensation: this.exposureCompensationValue()
+        } as any]
+      });
+    } catch (e) {
+      console.warn('Reapply brightness/contrast/exposure compensation failed:', e);
     }
   }
 
