@@ -227,7 +227,7 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     }
     try {
       await this.videoTrack.applyConstraints({
-        advanced: [{ whiteBalanceMode: 'manual', colorTemperature: this.colorTemperatureValue() } as any]
+        advanced: [{ whiteBalanceMode: 'manual', colorTemperature: this.toDeviceColorTemp(this.colorTemperatureValue()) } as any]
       });
     } catch (e) {
       console.warn('Reapply white balance color temperature failed:', e);
@@ -459,7 +459,7 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     this.colorTemperatureValue.set(rounded);
     try {
       await this.videoTrack.applyConstraints({
-        advanced: [{ whiteBalanceMode: 'manual', colorTemperature: rounded } as any]
+        advanced: [{ whiteBalanceMode: 'manual', colorTemperature: this.toDeviceColorTemp(rounded) } as any]
       });
     } catch (e) {
       console.error('Failed to set color temperature:', e);
@@ -479,10 +479,12 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     this.updateColorKnobFromEvent(ev);
   }
 
-  onColorKnobPointerUp(ev: PointerEvent): void {
+  async onColorKnobPointerUp(ev: PointerEvent): Promise<void> {
     if (!this.knobActive) return;
     this.knobActive = false;
     (ev.target as Element).releasePointerCapture?.(ev.pointerId);
+    // Reassert manual focus/exposure in case device toggled modes during WB changes
+    await this.reassertManualFocusAndExposure();
   }
 
   private updateColorKnobFromEvent(ev: PointerEvent): void {
@@ -501,6 +503,11 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     const fraction = (clampedAngle - 45) / 270;
     const value = this.colorTempMin + fraction * (this.colorTempMax - this.colorTempMin);
     this.applyColorTemperature(value);
+  }
+
+  private toDeviceColorTemp(userKelvin: number): number {
+    // Invert mapping to align visual effect: user higher K should appear cooler on this device
+    return this.colorTempMin + this.colorTempMax - userKelvin;
   }
 
   async applyExposureCompensation(compensation: number): Promise<void> {
