@@ -19,19 +19,19 @@
       <div class="focus-input-group">
         <h-button
           [label]="'+'"
-          [size]="'xs'"
+          [size]="'sm'"
           [ratio]="'square'"
           (click)="adjustFocusBy(1)"
         ></h-button>
         <h-input
           id="focus-input"
           type="text"
-          [value]="focusValue()"
+          [value]="focusValue().toString()"
           (change)="onFocusInputChange($event)"
         ></h-input>
         <h-button
           [label]="'-'"
-          [size]="'xs'"
+          [size]="'sm'"
           [ratio]="'square'"
           (click)="adjustFocusBy(-1)"
         ></h-button>
