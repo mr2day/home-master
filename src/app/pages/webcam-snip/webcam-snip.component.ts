@@ -1,5 +1,6 @@
 import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy, signal, computed } from '@angular/core';
 import { CameraCoordinatorService } from '../../services/camera-coordinator.service';
+import { Subject, debounceTime, switchMap, from, of, tap, catchError, finalize } from 'rxjs';
 import { HButtonComponent } from '@home-master/ui';
 
 @Component({
@@ -47,6 +48,14 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   private recordingTimer: number | null = null;
   private wbReassertTimer: number | null = null;
   private resizeObserver?: ResizeObserver;
+  private focusHoldTimer: number | null = null;
+  private shutterHoldTimer: number | null = null;
+  private focusChange$ = new Subject<number>();
+  private shutterChange$ = new Subject<number>();
+  focusLoading = signal(false);
+  focusResult = signal<'success' | 'error' | null>(null);
+  shutterLoading = signal(false);
+  shutterResult = signal<'success' | 'error' | null>(null);
   private supportedResolutions = [
     { width: 2592, height: 1944 },
     { width: 2560, height: 1440 },
@@ -78,6 +87,58 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
       if (cb) this.resizeObserver.observe(cb);
     }
     window.addEventListener('resize', this.centerColorKnob);
+
+    // Debounced apply for focus
+    this.focusChange$
+      .pipe(
+        debounceTime(200),
+        switchMap((val) => {
+          this.focusLoading.set(true);
+          this.focusResult.set(null);
+          return from(this.camera.applyPatch({ focusMode: 'manual', focusDistance: val })).pipe(
+            tap((applied) => {
+              if (typeof applied.focusDistance === 'number') this.focusValue.set(applied.focusDistance);
+              this.focusResult.set('success');
+            }),
+            catchError((err) => {
+              console.error('Focus apply failed', err);
+              this.focusResult.set('error');
+              return of(null);
+            }),
+            finalize(() => {
+              this.focusLoading.set(false);
+              setTimeout(() => this.focusResult.set(null), 1200);
+            })
+          );
+        })
+      )
+      .subscribe();
+
+    // Debounced apply for shutter
+    this.shutterChange$
+      .pipe(
+        debounceTime(250),
+        switchMap((val) => {
+          this.shutterLoading.set(true);
+          this.shutterResult.set(null);
+          return from(this.camera.applyPatch({ exposureMode: 'manual', exposureTime: val })).pipe(
+            tap((applied) => {
+              if (applied && typeof applied.exposureTime === 'number') this.shutterSpeedValue.set(applied.exposureTime);
+              this.shutterResult.set('success');
+            }),
+            catchError((err) => {
+              console.error('Shutter apply failed', err);
+              this.shutterResult.set('error');
+              return of(null);
+            }),
+            finalize(() => {
+              this.shutterLoading.set(false);
+              setTimeout(() => this.shutterResult.set(null), 1200);
+            })
+          );
+        })
+      )
+      .subscribe();
   }
 
   private formatResolution(res: { width: number; height: number }): string {
@@ -325,12 +386,7 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     if (!this.videoTrack) return;
     const clampedDistance = Math.max(0, Math.min(1023, distance));
     this.focusValue.set(clampedDistance);
-    try {
-      const applied = await this.camera.applyPatch({ focusMode: 'manual', focusDistance: clampedDistance });
-      if (typeof applied.focusDistance === 'number') this.focusValue.set(applied.focusDistance);
-    } catch (error) {
-      console.error('Failed to set focus distance:', error);
-    }
+    this.focusChange$.next(clampedDistance);
   }
 
   onFocusInputChange(event: Event): void {
@@ -356,12 +412,7 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     if (!this.videoTrack) return;
     const clampedSpeed = Math.max(1, Math.min(10000, speed));
     this.shutterSpeedValue.set(clampedSpeed);
-    try {
-      const applied = await this.camera.applyPatch({ exposureMode: 'manual', exposureTime: clampedSpeed });
-      if (typeof applied.exposureTime === 'number') this.shutterSpeedValue.set(applied.exposureTime);
-    } catch (error) {
-      console.error('Failed to set shutter speed:', error);
-    }
+    this.shutterChange$.next(clampedSpeed);
   }
 
   onShutterSpeedInputChange(event: Event): void {
@@ -593,6 +644,38 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     return this.colorTempMin + this.colorTempMax - userKelvin;
   }
 
+  // Hold-to-repeat handlers
+  onFocusHold(delta: number): void {
+    this.onFocusRelease();
+    this.focusHoldTimer = window.setInterval(() => {
+      this.applyFocusDistance(this.focusValue() + delta);
+    }, 50);
+  }
+  onFocusRelease(): void {
+    if (this.focusHoldTimer !== null) {
+      clearInterval(this.focusHoldTimer);
+      this.focusHoldTimer = null;
+    }
+  }
+
+  onShutterHold(delta: number): void {
+    this.onShutterRelease();
+    this.shutterHoldTimer = window.setInterval(() => {
+      const nextIndex = this.exposureStopIndex() + delta;
+      const clamped = Math.max(0, Math.min(this.exposureStops.length - 1, nextIndex));
+      if (clamped !== this.exposureStopIndex()) {
+        this.setExposureStopByIndex(clamped);
+        this.shutterChange$.next(this.shutterSpeedValue());
+      }
+    }, 100);
+  }
+  onShutterRelease(): void {
+    if (this.shutterHoldTimer !== null) {
+      clearInterval(this.shutterHoldTimer);
+      this.shutterHoldTimer = null;
+    }
+  }
+
   async applyExposureCompensation(compensation: number): Promise<void> {
     if (!this.videoTrack) return;
     const clampedCompensation = Math.max(0, Math.min(128, compensation));
@@ -683,6 +766,12 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.recordingTimer !== null) {
       clearInterval(this.recordingTimer);
+    }
+    if (this.focusHoldTimer !== null) {
+      clearInterval(this.focusHoldTimer);
+    }
+    if (this.shutterHoldTimer !== null) {
+      clearInterval(this.shutterHoldTimer);
     }
     if (this.wbReassertTimer !== null) {
       clearTimeout(this.wbReassertTimer);
