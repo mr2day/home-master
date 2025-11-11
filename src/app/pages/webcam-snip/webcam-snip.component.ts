@@ -42,6 +42,7 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   private recordedChunks: Blob[] = [];
   private recordingStartTime: number = 0;
   private recordingTimer: number | null = null;
+  private wbReassertTimer: number | null = null;
   private supportedResolutions = [
     { width: 2592, height: 1944 },
     { width: 2560, height: 1440 },
@@ -464,6 +465,14 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     } catch (e) {
       console.error('Failed to set color temperature:', e);
     }
+    // Debounced reassert to keep focus/exposure from dropping during rapid knob updates
+    if (this.wbReassertTimer !== null) {
+      clearTimeout(this.wbReassertTimer);
+    }
+    this.wbReassertTimer = window.setTimeout(() => {
+      this.reassertManualFocusAndExposure();
+      this.wbReassertTimer = null;
+    }, 250);
   }
 
   // Color temperature knob interactions
@@ -601,6 +610,9 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     if (this.recordingTimer !== null) {
       clearInterval(this.recordingTimer);
+    }
+    if (this.wbReassertTimer !== null) {
+      clearTimeout(this.wbReassertTimer);
     }
     if (this.isRecording()) {
       this.stopRecording();
