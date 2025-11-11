@@ -86,7 +86,8 @@
   justify-content: center;
   align-items: center;
   user-select: none;
-  margin-bottom: -0.5rem; // reclaim a bit of space under the knob
+  margin-top: 0.35rem; // nudge knob slightly downward
+  margin-bottom: 0; // remove negative pull-up
 }
 
 .color-knob__dial {
