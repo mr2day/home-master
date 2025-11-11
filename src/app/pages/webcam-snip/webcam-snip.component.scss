@@ -42,23 +42,36 @@
   max-width: 80%;
 }
 
+.left-controls {
+  position: fixed;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: flex-start;
+  margin-top: 1.5rem;
+}
+
 .button-group {
   position: fixed;
   right: 1rem;
   top: 50%;
   transform: translateY(-50%);
   display: flex;
+  flex-direction: row;
+  gap: 1.5rem;
+  align-items: flex-end;
+}
+
+.controls-column {
+  display: flex;
   flex-direction: column;
   gap: 1.5rem;
   align-items: flex-end;
 }
 
-.controls-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  width: auto;
-}
 
 .action-controls {
   display: flex;
@@ -80,6 +93,10 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
+}
+
+.left-controls .focus-control {
+  align-items: flex-start;
 }
 
 .focus-input-group {
@@ -109,6 +126,30 @@
   &::selection {
     background-color: #999;
     color: #222;
+  }
+}
+
+.resolution-select {
+  width: auto;
+  padding: 0.625rem 1.5rem 0.625rem 0.625rem;
+  background-color: #333;
+  color: #999;
+  border: 1px solid #444;
+  border-radius: 0.25rem;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding-right: 1.5rem;
+
+  &:focus {
+    outline: none;
+    border-color: #999;
+    color: #fff;
+  }
+
+  option {
+    background-color: #333;
+    color: #999;
   }
 }
 

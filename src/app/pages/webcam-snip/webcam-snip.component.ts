@@ -17,12 +17,20 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   brightnessValue = signal(50);
   contrastValue = signal(50);
   exposureCompensationValue = signal(40);
+  resolutionValue = signal('2592x1944');
   private mediaStream: MediaStream | null = null;
   private videoTrack: MediaStreamTrack | null = null;
   private mediaRecorder: MediaRecorder | null = null;
   private recordedChunks: Blob[] = [];
   private recordingStartTime: number = 0;
   private recordingTimer: number | null = null;
+  private supportedResolutions = [
+    { width: 2592, height: 1944 },
+    { width: 2560, height: 1440 },
+    { width: 1920, height: 1080 },
+    { width: 1280, height: 720 },
+    { width: 640, height: 480 }
+  ];
 
   ngAfterViewInit(): void {
     this.startWebcam();
@@ -30,15 +38,27 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
 
   private async startWebcam(): Promise<void> {
     try {
-      const tryExact = { width: { exact: 2560 }, height: { exact: 1440 }, frameRate: { ideal: 30 } };
-      const tryIdeal = { width: { ideal: 2560 }, height: { ideal: 1440 }, frameRate: { ideal: 30 } };
-
       let stream: MediaStream | null = null;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: tryExact, audio: false });
-      } catch {
-        stream = await navigator.mediaDevices.getUserMedia({ video: tryIdeal, audio: false });
+      let initialResolution = '';
+      for (const res of this.supportedResolutions) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { exact: res.width }, height: { exact: res.height }, frameRate: { ideal: 30 } },
+            audio: false
+          });
+          initialResolution = `${res.width}x${res.height}`;
+          console.log(`Camera initialized with ${initialResolution}`);
+          break;
+        } catch {
+          console.log(`Resolution ${res.width}x${res.height} not supported`);
+        }
       }
+
+      if (!stream) {
+        throw new Error('No supported resolution found');
+      }
+
+      this.resolutionValue.set(initialResolution);
       this.videoTrack = stream.getVideoTracks()[0];
       console.log(this.videoTrack.getCapabilities());
 
@@ -270,6 +290,35 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
 
   async adjustExposureCompensationBy(delta: number): Promise<void> {
     await this.applyExposureCompensation(this.exposureCompensationValue() + delta);
+  }
+
+  async applyResolution(resolutionStr: string): Promise<void> {
+    if (!this.videoTrack) return;
+    const resolution = this.supportedResolutions.find(
+      r => `${r.width}x${r.height}` === resolutionStr
+    );
+    if (!resolution) {
+      this.errorMessage = `Invalid resolution: ${resolutionStr}`;
+      return;
+    }
+
+    try {
+      await this.videoTrack.applyConstraints({
+        width: { exact: resolution.width },
+        height: { exact: resolution.height },
+        frameRate: { ideal: 30 }
+      });
+      this.resolutionValue.set(resolutionStr);
+      console.log(`Resolution changed to ${resolutionStr}`);
+    } catch (error) {
+      this.errorMessage = `Failed to apply resolution ${resolutionStr}`;
+      console.error('Failed to set resolution:', error);
+    }
+  }
+
+  onResolutionInputChange(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.applyResolution(value);
   }
 
   async snip(actionPromise: Promise<void>): Promise<void> {
