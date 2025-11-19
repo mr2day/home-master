@@ -1,15 +1,19 @@
-import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy, signal, effect } from '@angular/core';
+import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy, signal, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HButtonComponent } from '@home-master/ui';
+import { CameraConstraintsService } from '../webcam-snip/camera-constraints.service';
 
 @Component({
   selector: 'app-multi-cameras',
   imports: [HButtonComponent, CommonModule],
   templateUrl: './multi-cameras.component.html',
   styleUrl: './multi-cameras.component.scss',
+  providers: [CameraConstraintsService],
 })
 export class MultiCamerasComponent implements AfterViewInit, OnDestroy {
   @ViewChild('videoElement', { read: ElementRef }) videoElement?: ElementRef<HTMLVideoElement>;
+
+  private constraintsService = inject(CameraConstraintsService);
 
   errorMessage: string = '';
   isRecording = signal(false);
@@ -19,11 +23,22 @@ export class MultiCamerasComponent implements AfterViewInit, OnDestroy {
   selectedCameraIndex = signal<number>(0);
   viewMode = signal<'single' | 'grid'>('single');
 
+  // Trust camera control signals
+  focusValue = signal(0);
+  brightnessValue = signal(0);
+  exposureCompensationValue = signal(0);
+  shutterSpeedValue = signal(0);
+  contrastValue = signal(0);
+  resolutionValue = signal('640x480');
+  availableResolutions = signal<Array<{ width: number; height: number }>>([]);
+  shutterLabel = signal('');
+
   private mediaStreams: Map<string, MediaStream> = new Map();
   private mediaRecorder: MediaRecorder | null = null;
   private recordedChunks: Blob[] = [];
   private recordingStartTime: number = 0;
   private recordingTimer: number | null = null;
+  private videoTrack: MediaStreamTrack | null = null;
 
   constructor() {
     // Update display when selected camera changes
@@ -222,12 +237,167 @@ export class MultiCamerasComponent implements AfterViewInit, OnDestroy {
     }
     // Then select the camera
     this.selectedCameraIndex.set(index);
+    // If Trust camera, load its controls
+    if (this.isTrustCamera(index)) {
+      this.loadTrustCameraControls(index);
+    }
   }
 
   isTrustCamera(index: number): boolean {
     const camera = this.availableCameras()[index];
     if (!camera) return false;
     return camera.label.toLowerCase().includes('trust');
+  }
+
+  private async loadTrustCameraControls(index: number): Promise<void> {
+    const camera = this.availableCameras()[index];
+    if (!camera) return;
+
+    const stream = this.mediaStreams.get(camera.deviceId);
+    if (!stream) return;
+
+    this.videoTrack = stream.getVideoTracks()[0];
+    if (this.videoTrack) {
+      await this.constraintsService.applyVideoConstraints(this.videoTrack, camera.deviceId);
+      await this.constraintsService.probeAvailableResolutions(camera.deviceId);
+    }
+  }
+
+  async applyFocusDistance(distance: number): Promise<void> {
+    if (!this.videoTrack) return;
+    const camera = this.availableCameras()[this.selectedCameraIndex()];
+    if (camera) {
+      await this.constraintsService.applyFocusDistance(distance, this.videoTrack, camera.deviceId);
+    }
+  }
+
+  onFocusInputChange(event: Event): void {
+    const value = parseInt((event.target as HTMLInputElement).value, 10);
+    if (!isNaN(value)) {
+      this.applyFocusDistance(value);
+    }
+  }
+
+  adjustFocusBy(delta: number): void {
+    if (!this.videoTrack) return;
+    const camera = this.availableCameras()[this.selectedCameraIndex()];
+    if (camera) {
+      this.constraintsService.adjustFocusBy(delta, this.videoTrack, camera.deviceId);
+    }
+  }
+
+  async applyShutterSpeed(speed: number): Promise<void> {
+    if (!this.videoTrack) return;
+    const camera = this.availableCameras()[this.selectedCameraIndex()];
+    if (camera) {
+      await this.constraintsService.applyShutterSpeed(speed, this.videoTrack, camera.deviceId);
+    }
+  }
+
+  onShutterSpeedInputChange(event: Event): void {
+    const value = parseFloat((event.target as HTMLInputElement).value);
+    if (!isNaN(value)) {
+      this.applyShutterSpeed(value);
+    }
+  }
+
+  async adjustShutterSpeedBy(delta: number): Promise<void> {
+    if (!this.videoTrack) return;
+    const camera = this.availableCameras()[this.selectedCameraIndex()];
+    if (camera) {
+      await this.constraintsService.adjustShutterSpeedBy(delta, this.videoTrack, camera.deviceId);
+    }
+  }
+
+  async applyBrightness(brightness: number): Promise<void> {
+    if (!this.videoTrack) return;
+    const camera = this.availableCameras()[this.selectedCameraIndex()];
+    if (camera) {
+      await this.constraintsService.applyBrightness(brightness, this.videoTrack, camera.deviceId);
+    }
+  }
+
+  onBrightnessInputChange(event: Event): void {
+    const value = parseInt((event.target as HTMLInputElement).value, 10);
+    if (!isNaN(value)) {
+      this.applyBrightness(value);
+    }
+  }
+
+  async adjustBrightnessBy(delta: number): Promise<void> {
+    if (!this.videoTrack) return;
+    const camera = this.availableCameras()[this.selectedCameraIndex()];
+    if (camera) {
+      await this.constraintsService.adjustBrightnessBy(delta, this.videoTrack, camera.deviceId);
+    }
+  }
+
+  async applyContrast(contrast: number): Promise<void> {
+    if (!this.videoTrack) return;
+    const camera = this.availableCameras()[this.selectedCameraIndex()];
+    if (camera) {
+      await this.constraintsService.applyContrast(contrast, this.videoTrack, camera.deviceId);
+    }
+  }
+
+  onContrastInputChange(event: Event): void {
+    const value = parseInt((event.target as HTMLInputElement).value, 10);
+    if (!isNaN(value)) {
+      this.applyContrast(value);
+    }
+  }
+
+  async adjustContrastBy(delta: number): Promise<void> {
+    if (!this.videoTrack) return;
+    const camera = this.availableCameras()[this.selectedCameraIndex()];
+    if (camera) {
+      await this.constraintsService.adjustContrastBy(delta, this.videoTrack, camera.deviceId);
+    }
+  }
+
+  async applyExposureCompensation(compensation: number): Promise<void> {
+    if (!this.videoTrack) return;
+    const camera = this.availableCameras()[this.selectedCameraIndex()];
+    if (camera) {
+      await this.constraintsService.applyExposureCompensation(compensation, this.videoTrack, camera.deviceId);
+    }
+  }
+
+  onExposureCompensationInputChange(event: Event): void {
+    const value = parseInt((event.target as HTMLInputElement).value, 10);
+    if (!isNaN(value)) {
+      this.applyExposureCompensation(value);
+    }
+  }
+
+  async adjustExposureCompensationBy(delta: number): Promise<void> {
+    if (!this.videoTrack) return;
+    const camera = this.availableCameras()[this.selectedCameraIndex()];
+    if (camera) {
+      await this.constraintsService.adjustExposureCompensationBy(delta, this.videoTrack, camera.deviceId);
+    }
+  }
+
+  async applyResolution(resolutionStr: string): Promise<void> {
+    try {
+      if (!this.videoTrack) return;
+      const camera = this.availableCameras()[this.selectedCameraIndex()];
+      if (camera) {
+        await this.constraintsService.applyResolution(resolutionStr, this.videoTrack, camera.deviceId);
+        await this.constraintsService.reassertManualFocusAndExposure(this.videoTrack, camera.deviceId);
+        this.errorMessage = '';
+      }
+    } catch (error) {
+      this.errorMessage = `Failed to apply resolution ${resolutionStr}`;
+      console.error('Failed to set resolution:', error);
+    }
+  }
+
+  onResolutionInputChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    if (value) {
+      this.applyResolution(value);
+    }
   }
 
   toggleViewMode(): void {
