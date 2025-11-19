@@ -463,6 +463,17 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   }
 
   async switchToPrimaryCamera(): Promise<void> {
+    // Switch to the primary camera FIRST so selectedCameraId is correct
+    // when cameraMode change triggers the effect
+    if (this.selectedCameraId() !== this.availableCameras()[0].deviceId) {
+      this.selectedCameraId.set(this.availableCameras()[0].deviceId);
+      // If the primary stream was stopped, restart it
+      if (!this.mediaStream) {
+        await this.startPrimaryCameraStream();
+      }
+    }
+
+    // Now exit split mode if needed (this triggers effect with correct selectedCameraId)
     if (this.cameraMode() === 'split') {
       this.cameraMode.set('single');
       // Stop secondary camera when exiting split mode
@@ -473,15 +484,6 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
         if (this.videoElement2) {
           this.videoElement2.nativeElement.srcObject = null;
         }
-      }
-    }
-
-    // Switch to the primary camera - restart it if it was stopped
-    if (this.selectedCameraId() !== this.availableCameras()[0].deviceId) {
-      this.selectedCameraId.set(this.availableCameras()[0].deviceId);
-      // If the primary stream was stopped, restart it
-      if (!this.mediaStream) {
-        await this.startPrimaryCameraStream();
       }
     }
   }
@@ -490,6 +492,18 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     if (this.availableCameras().length < 2) {
       return; // No secondary camera available
     }
+
+    // Switch to the secondary camera FIRST so selectedCameraId is correct
+    // when cameraMode change triggers the effect
+    if (this.selectedCameraId() !== this.availableCameras()[1].deviceId) {
+      this.selectedCameraId.set(this.availableCameras()[1].deviceId);
+      // If the secondary stream was stopped (e.g., exiting split view), restart it
+      if (!this.mediaStream2) {
+        await this.startSecondaryCameraStream();
+      }
+    }
+
+    // Now exit split mode if needed (this triggers effect with correct selectedCameraId)
     if (this.cameraMode() === 'split') {
       this.cameraMode.set('single');
       // Stop secondary camera when exiting split mode
@@ -500,15 +514,6 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
         if (this.videoElement2) {
           this.videoElement2.nativeElement.srcObject = null;
         }
-      }
-    }
-
-    // Switch to the secondary camera - restart it if it was stopped
-    if (this.selectedCameraId() !== this.availableCameras()[1].deviceId) {
-      this.selectedCameraId.set(this.availableCameras()[1].deviceId);
-      // If the secondary stream was stopped (e.g., exiting split view), restart it
-      if (!this.mediaStream2) {
-        await this.startSecondaryCameraStream();
       }
     }
   }
