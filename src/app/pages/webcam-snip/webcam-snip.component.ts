@@ -790,9 +790,14 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
         }
       }
     }
-    // Just switch to the primary camera without restarting - the stream is already running
+
+    // Switch to the primary camera - restart it if it was stopped
     if (this.selectedCameraId() !== this.availableCameras()[0].deviceId) {
       this.selectedCameraId.set(this.availableCameras()[0].deviceId);
+      // If the primary stream was stopped, restart it
+      if (!this.mediaStream) {
+        await this.startPrimaryCameraStream();
+      }
     }
   }
 
@@ -812,9 +817,14 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
         }
       }
     }
-    // Just switch to the secondary camera without restarting - the stream is already running
+
+    // Switch to the secondary camera - restart it if it was stopped
     if (this.selectedCameraId() !== this.availableCameras()[1].deviceId) {
       this.selectedCameraId.set(this.availableCameras()[1].deviceId);
+      // If the secondary stream was stopped (e.g., exiting split view), restart it
+      if (!this.mediaStream2) {
+        await this.startSecondaryCameraStream();
+      }
     }
   }
 
