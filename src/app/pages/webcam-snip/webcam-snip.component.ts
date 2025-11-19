@@ -14,6 +14,9 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   @ViewChild('videoElement', { read: ElementRef }) videoElement!: ElementRef<HTMLVideoElement>;
   @ViewChild('videoElement2', { read: ElementRef, static: false }) videoElement2?: ElementRef<HTMLVideoElement>;
 
+  // Feature flag: if false, no constraints are applied to cameras
+  withConstraints = false;
+
   errorMessage: string = '';
   isRecording = signal(false);
   recordingTime = signal('00:00');
@@ -134,7 +137,11 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
       }
 
       this.videoTrack = stream.getVideoTracks()[0];
-      await this.constraintsService.applyVideoConstraints(this.videoTrack, this.selectedCameraId());
+
+      // Apply constraints only if withConstraints is enabled
+      if (this.withConstraints) {
+        await this.constraintsService.applyVideoConstraints(this.videoTrack, this.selectedCameraId());
+      }
 
       this.mediaStream = stream;
       // Don't bind directly; let updateDisplayedStream handle it based on mode
@@ -143,7 +150,9 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
       this.initializeRecorder();
 
       // Ensure initial defaults are applied to the device after stream is ready
-      await this.constraintsService.reassertManualFocusAndExposure(this.videoTrack, this.selectedCameraId());
+      if (this.withConstraints) {
+        await this.constraintsService.reassertManualFocusAndExposure(this.videoTrack, this.selectedCameraId());
+      }
     } catch (error) {
       this.errorMessage = 'Unable to access primary camera. Please check permissions.';
       console.error('Primary camera error:', error);
@@ -169,7 +178,11 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
       }
 
       this.videoTrack2 = stream.getVideoTracks()[0];
-      await this.constraintsService.applyVideoConstraints(this.videoTrack2, this.selectedCamera2Id());
+
+      // Apply constraints only if withConstraints is enabled
+      if (this.withConstraints) {
+        await this.constraintsService.applyVideoConstraints(this.videoTrack2, this.selectedCamera2Id());
+      }
 
       this.mediaStream2 = stream;
       // Don't bind directly; let updateDisplayedStream handle it based on mode
@@ -229,7 +242,11 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
 
       this.videoTrack2 = stream.getVideoTracks()[0];
       console.log('Secondary camera stream started:', this.videoTrack2);
-      await this.constraintsService.applyVideoConstraints(this.videoTrack2, this.selectedCamera2Id());
+
+      // Apply constraints only if withConstraints is enabled
+      if (this.withConstraints) {
+        await this.constraintsService.applyVideoConstraints(this.videoTrack2, this.selectedCamera2Id());
+      }
 
       this.mediaStream2 = stream;
       // Don't bind directly; let updateDisplayedStream handle it based on mode
@@ -308,6 +325,7 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   }
 
   async applyFocusDistance(distance: number): Promise<void> {
+    if (!this.withConstraints) return;
     await this.constraintsService.applyFocusDistance(distance, this.videoTrack, this.selectedCameraId());
   }
 
@@ -319,10 +337,12 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   }
 
   adjustFocusBy(delta: number): void {
+    if (!this.withConstraints) return;
     this.constraintsService.adjustFocusBy(delta, this.videoTrack, this.selectedCameraId());
   }
 
   async applyShutterSpeed(speed: number): Promise<void> {
+    if (!this.withConstraints) return;
     await this.constraintsService.applyShutterSpeed(speed, this.videoTrack, this.selectedCameraId());
   }
 
@@ -334,10 +354,12 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   }
 
   async adjustShutterSpeedBy(delta: number): Promise<void> {
+    if (!this.withConstraints) return;
     await this.constraintsService.adjustShutterSpeedBy(delta, this.videoTrack, this.selectedCameraId());
   }
 
   async applyBrightness(brightness: number): Promise<void> {
+    if (!this.withConstraints) return;
     await this.constraintsService.applyBrightness(brightness, this.videoTrack, this.selectedCameraId());
   }
 
@@ -349,10 +371,12 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   }
 
   async adjustBrightnessBy(delta: number): Promise<void> {
+    if (!this.withConstraints) return;
     await this.constraintsService.adjustBrightnessBy(delta, this.videoTrack, this.selectedCameraId());
   }
 
   async applyContrast(contrast: number): Promise<void> {
+    if (!this.withConstraints) return;
     await this.constraintsService.applyContrast(contrast, this.videoTrack, this.selectedCameraId());
   }
 
@@ -364,10 +388,12 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   }
 
   async adjustContrastBy(delta: number): Promise<void> {
+    if (!this.withConstraints) return;
     await this.constraintsService.adjustContrastBy(delta, this.videoTrack, this.selectedCameraId());
   }
 
   async applyExposureCompensation(compensation: number): Promise<void> {
+    if (!this.withConstraints) return;
     await this.constraintsService.applyExposureCompensation(compensation, this.videoTrack, this.selectedCameraId());
   }
 
@@ -379,6 +405,7 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   }
 
   async adjustExposureCompensationBy(delta: number): Promise<void> {
+    if (!this.withConstraints) return;
     await this.constraintsService.adjustExposureCompensationBy(delta, this.videoTrack, this.selectedCameraId());
   }
 
@@ -387,7 +414,9 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
       await this.constraintsService.applyResolution(resolutionStr, this.videoTrack, this.selectedCameraId());
       console.log(`Resolution changed to ${resolutionStr}`);
       // Reassert manual modes and current values after changing resolution.
-      await this.constraintsService.reassertManualFocusAndExposure(this.videoTrack, this.selectedCameraId());
+      if (this.withConstraints) {
+        await this.constraintsService.reassertManualFocusAndExposure(this.videoTrack, this.selectedCameraId());
+      }
       this.errorMessage = '';
     } catch (error) {
       this.errorMessage = `Failed to apply resolution ${resolutionStr}`;

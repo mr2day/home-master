@@ -62,102 +62,108 @@
       </div>
     }
   </div>
-  <div class="left-controls">
-    <div class="focus-control">
-      <label for="focus-input">Focus</label>
-      <div class="focus-input-group">
-        <button class="focus-btn" (click)="adjustFocusBy(10)">+</button>
-        <input
-          id="focus-input"
-          type="text"
-          [value]="focusValue()"
-          (change)="onFocusInputChange($event)"
-          class="focus-input"
-        />
-        <button class="focus-btn" (click)="adjustFocusBy(-10)">-</button>
+  @if (withConstraints) {
+    <div class="left-controls">
+      <div class="focus-control">
+        <label for="focus-input">Focus</label>
+        <div class="focus-input-group">
+          <button class="focus-btn" (click)="adjustFocusBy(10)">+</button>
+          <input
+            id="focus-input"
+            type="text"
+            [value]="focusValue()"
+            (change)="onFocusInputChange($event)"
+            class="focus-input"
+          />
+          <button class="focus-btn" (click)="adjustFocusBy(-10)">-</button>
+        </div>
+      </div>
+      <div class="focus-control">
+        <label for="brightness-input">Brightness</label>
+        <div class="focus-input-group">
+          <button class="focus-btn" (click)="adjustBrightnessBy(1)">+</button>
+          <input
+            id="brightness-input"
+            type="text"
+            [value]="brightnessValue()"
+            (change)="onBrightnessInputChange($event)"
+            class="focus-input"
+          />
+          <button class="focus-btn" (click)="adjustBrightnessBy(-1)">-</button>
+        </div>
+      </div>
+      <div class="focus-control">
+        <label for="exposure-compensation-input">Exposure</label>
+        <div class="focus-input-group">
+          <button class="focus-btn" (click)="adjustExposureCompensationBy(1)">+</button>
+          <input
+            id="exposure-compensation-input"
+            type="text"
+            [value]="exposureCompensationValue()"
+            (change)="onExposureCompensationInputChange($event)"
+            class="focus-input"
+          />
+          <button class="focus-btn" (click)="adjustExposureCompensationBy(-1)">-</button>
+        </div>
       </div>
     </div>
-    <div class="focus-control">
-      <label for="brightness-input">Brightness</label>
-      <div class="focus-input-group">
-        <button class="focus-btn" (click)="adjustBrightnessBy(1)">+</button>
-        <input
-          id="brightness-input"
-          type="text"
-          [value]="brightnessValue()"
-          (change)="onBrightnessInputChange($event)"
-          class="focus-input"
-        />
-        <button class="focus-btn" (click)="adjustBrightnessBy(-1)">-</button>
-      </div>
-    </div>
-    <div class="focus-control">
-      <label for="exposure-compensation-input">Exposure</label>
-      <div class="focus-input-group">
-        <button class="focus-btn" (click)="adjustExposureCompensationBy(1)">+</button>
-        <input
-          id="exposure-compensation-input"
-          type="text"
-          [value]="exposureCompensationValue()"
-          (change)="onExposureCompensationInputChange($event)"
-          class="focus-input"
-        />
-        <button class="focus-btn" (click)="adjustExposureCompensationBy(-1)">-</button>
-      </div>
-    </div>
-  </div>
+  }
   <div class="button-group">
+    @if (withConstraints) {
+      <div class="controls-column">
+        <div class="focus-control">
+          <label for="resolution-input">Resolution</label>
+          <div class="focus-input-group">
+            <select
+              id="resolution-input"
+              [value]="resolutionValue()"
+              (change)="onResolutionInputChange($event)"
+              class="resolution-select"
+            >
+              @for (res of availableResolutions(); track $index) {
+                <option
+                  [value]="res.width + 'x' + res.height"
+                  [selected]="(res.width + 'x' + res.height) === resolutionValue()"
+                >
+                  {{ res.width + 'x' + res.height }}
+                </option>
+              }
+            </select>
+          </div>
+        </div>
+      </div>
+    }
     <div class="controls-column">
-      <div class="focus-control">
-        <label for="resolution-input">Resolution</label>
-        <div class="focus-input-group">
-          <select
-            id="resolution-input"
-            [value]="resolutionValue()"
-            (change)="onResolutionInputChange($event)"
-            class="resolution-select"
-          >
-            @for (res of availableResolutions(); track $index) {
-              <option 
-                [value]="res.width + 'x' + res.height"
-                [selected]="(res.width + 'x' + res.height) === resolutionValue()"
-              >
-                {{ res.width + 'x' + res.height }}
-              </option>
-            }
-          </select>
+      @if (withConstraints) {
+        <div class="focus-control">
+          <label for="shutter-speed-input">Shutter</label>
+          <div class="focus-input-group">
+            <button class="focus-btn" (click)="adjustShutterSpeedBy(1)">+</button>
+            <input
+              id="shutter-speed-input"
+              type="text"
+              [value]="shutterLabel()"
+              readonly
+              class="focus-input"
+            />
+            <button class="focus-btn" (click)="adjustShutterSpeedBy(-1)">-</button>
+          </div>
         </div>
-      </div>
-    </div>
-    <div class="controls-column">
-      <div class="focus-control">
-        <label for="shutter-speed-input">Shutter</label>
-        <div class="focus-input-group">
-          <button class="focus-btn" (click)="adjustShutterSpeedBy(1)">+</button>
-          <input
-            id="shutter-speed-input"
-            type="text"
-            [value]="shutterLabel()"
-            readonly
-            class="focus-input"
-          />
-          <button class="focus-btn" (click)="adjustShutterSpeedBy(-1)">-</button>
+        <div class="focus-control">
+          <label for="contrast-input">Contrast</label>
+          <div class="focus-input-group">
+            <button class="focus-btn" (click)="adjustContrastBy(1)">+</button>
+            <input
+              id="contrast-input"
+              type="text"
+              [value]="contrastValue()"
+              (change)="onContrastInputChange($event)"
+              class="focus-input"
+            />
+            <button class="focus-btn" (click)="adjustContrastBy(-1)">-</button>
+          </div>
         </div>
-      </div>
-      <div class="focus-control">
-        <label for="contrast-input">Contrast</label>
-        <div class="focus-input-group">
-          <button class="focus-btn" (click)="adjustContrastBy(1)">+</button>
-          <input
-            id="contrast-input"
-            type="text"
-            [value]="contrastValue()"
-            (change)="onContrastInputChange($event)"
-            class="focus-input"
-          />
-          <button class="focus-btn" (click)="adjustContrastBy(-1)">-</button>
-        </div>
-      </div>
+      }
       <div class="action-controls">
         <div class="record-info">
           @if (isRecording()) {
