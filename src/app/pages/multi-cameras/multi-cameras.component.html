@@ -1,62 +1,81 @@
-<div class="cameras-container">
-  <div class="camera-view" [ngClass]="'mode-' + viewMode()" #videoContainer></div>
-
-  @if (errorMessage) {
-    <div class="error-message">
-      {{ errorMessage }}
-    </div>
-  }
-
-  @if (availableCameras().length > 0) {
-    <div class="camera-mode-buttons">
-      @for (camera of availableCameras(); track camera.deviceId; let i = $index) {
-        <button
-          class="camera-mode-btn"
-          [class.active]="selectedCameraIndex() === i && viewMode() === 'single'"
-          (click)="selectCamera(i)"
-        >
-          Camera {{ i + 1 }}
-          <span class="btn-indicator" [class.active]="selectedCameraIndex() === i && viewMode() === 'single'">●</span>
-        </button>
-      }
-
-      @if (availableCameras().length > 1) {
-        <button
-          class="camera-mode-btn"
-          [class.active]="viewMode() === 'grid'"
-          (click)="toggleViewMode()"
-        >
-          Grid
-          <span class="btn-indicator" [class.active]="viewMode() === 'grid'">●</span>
-        </button>
-      }
-    </div>
-
-    <div class="button-group">
-      <div class="controls-column">
-        <div class="action-controls">
-          <div class="record-info">
-            @if (isRecording()) {
-              <span class="recording-indicator"><span class="recording-dot"></span> Recording</span>
-              <span class="recording-time">{{ recordingTime() }}</span>
-            }
+<div class="webcam-container">
+  <div class="webcam-wrapper" [ngClass]="'mode-' + viewMode()">
+    @if (viewMode() === 'grid') {
+      <div class="grid-container">
+        @for (camera of availableCameras(); track camera.deviceId) {
+          <div class="camera-item">
+            <video
+              class="webcam-video"
+              autoplay
+              playsinline
+            ></video>
           </div>
-          <div class="buttons">
-            <h-button
-              [label]="isRecording() ? 'Stop' : 'Record'"
-              [size]="'sm'"
-              [ratio]="'square'"
-              [action]="toggleRecordingAction"
-            ></h-button>
-            <h-button
-              [label]="'Snip'"
-              [size]="'md'"
-              [ratio]="'square'"
-              [action]="snipAction"
-            ></h-button>
-          </div>
+        }
+      </div>
+    } @else {
+      <video
+        #videoElement
+        class="webcam-video"
+        autoplay
+        playsinline
+      ></video>
+    }
+
+    @if (errorMessage) {
+      <div class="error-message">
+        {{ errorMessage }}
+      </div>
+    }
+    @if (availableCameras().length > 0) {
+      <div class="camera-mode-buttons">
+        @for (camera of availableCameras(); track camera.deviceId; let i = $index) {
+          <button
+            class="camera-mode-btn"
+            [class.active]="selectedCameraIndex() === i && viewMode() === 'single'"
+            (click)="selectCamera(i)"
+          >
+            Camera {{ i + 1 }}
+            <span class="btn-indicator" [class.active]="selectedCameraIndex() === i && viewMode() === 'single'">●</span>
+          </button>
+        }
+
+        @if (availableCameras().length > 1) {
+          <button
+            class="camera-mode-btn"
+            [class.active]="viewMode() === 'grid'"
+            (click)="toggleViewMode()"
+          >
+            Grid
+            <span class="btn-indicator" [class.active]="viewMode() === 'grid'">●</span>
+          </button>
+        }
+      </div>
+    }
+  </div>
+  <div class="button-group">
+    <div class="controls-column">
+      <div class="action-controls">
+        <div class="record-info">
+          @if (isRecording()) {
+            <span class="recording-indicator"><span class="recording-dot"></span> Recording</span>
+            <span class="recording-time">{{ recordingTime() }}</span>
+          }
+        </div>
+        <div class="buttons">
+          <h-button
+            [label]="isRecording() ? 'Stop' : 'Record'"
+            [size]="'sm'"
+            [ratio]="'square'"
+            [action]="toggleRecordingAction"
+          ></h-button>
+          <h-button
+            [label]="'Snip'"
+            [size]="'md'"
+            [ratio]="'square'"
+            [action]="snipAction"
+          ></h-button>
         </div>
       </div>
     </div>
-  }
+  </div>
 </div>

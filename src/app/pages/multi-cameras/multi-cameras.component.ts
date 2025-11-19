@@ -9,7 +9,7 @@ import { HButtonComponent } from '@home-master/ui';
   styleUrl: './multi-cameras.component.scss',
 })
 export class MultiCamerasComponent implements AfterViewInit, OnDestroy {
-  @ViewChild('videoContainer', { read: ElementRef }) videoContainer?: ElementRef<HTMLDivElement>;
+  @ViewChild('videoElement', { read: ElementRef }) videoElement?: ElementRef<HTMLVideoElement>;
 
   errorMessage: string = '';
   isRecording = signal(false);
@@ -93,44 +93,14 @@ export class MultiCamerasComponent implements AfterViewInit, OnDestroy {
   }
 
   private updateDisplay(): void {
-    if (!this.videoContainer) return;
-
-    const container = this.videoContainer.nativeElement;
     const mode = this.viewMode();
-
-    // Clear existing video elements
-    container.innerHTML = '';
 
     if (mode === 'single') {
       // Single view: show selected camera
-      const selectedIndex = this.selectedCameraIndex();
-      const selectedCamera = this.availableCameras()[selectedIndex];
-
-      if (selectedCamera) {
-        const stream = this.mediaStreams.get(selectedCamera.deviceId);
-        if (stream) {
-          const video = document.createElement('video');
-          video.srcObject = stream;
-          video.autoplay = true;
-          video.playsInline = true;
-          video.className = 'camera-video';
-          container.appendChild(video);
-        }
-      }
+      this.updateSingleView();
     } else {
       // Grid view: show all cameras
-      const cameras = this.availableCameras();
-      cameras.forEach((camera) => {
-        const stream = this.mediaStreams.get(camera.deviceId);
-        if (stream) {
-          const video = document.createElement('video');
-          video.srcObject = stream;
-          video.autoplay = true;
-          video.playsInline = true;
-          video.className = 'camera-video';
-          container.appendChild(video);
-        }
-      });
+      this.updateGridView();
     }
 
     // Initialize recorder for single view
@@ -141,6 +111,41 @@ export class MultiCamerasComponent implements AfterViewInit, OnDestroy {
         this.initializeRecorder(stream);
       }
     }
+  }
+
+  private updateSingleView(): void {
+    if (!this.videoElement) return;
+
+    const selectedIndex = this.selectedCameraIndex();
+    const selectedCamera = this.availableCameras()[selectedIndex];
+
+    if (selectedCamera) {
+      const stream = this.mediaStreams.get(selectedCamera.deviceId);
+      if (stream) {
+        this.videoElement.nativeElement.srcObject = stream;
+      }
+    }
+  }
+
+  private updateGridView(): void {
+    // In grid view, we use template-rendered videos that are already created
+    // We just need to bind the correct streams to them
+    setTimeout(() => {
+      const wrapper = document.querySelector('.webcam-wrapper');
+      if (!wrapper) return;
+
+      const videos = Array.from(wrapper.querySelectorAll('.grid-container video')) as HTMLVideoElement[];
+      const cameras = this.availableCameras();
+
+      videos.forEach((video, index) => {
+        if (index < cameras.length) {
+          const stream = this.mediaStreams.get(cameras[index].deviceId);
+          if (stream) {
+            video.srcObject = stream;
+          }
+        }
+      });
+    }, 0);
   }
 
   private initializeRecorder(stream: MediaStream): void {
@@ -211,6 +216,11 @@ export class MultiCamerasComponent implements AfterViewInit, OnDestroy {
   }
 
   selectCamera(index: number): void {
+    // If in grid view, switch to single view first
+    if (this.viewMode() === 'grid') {
+      this.viewMode.set('single');
+    }
+    // Then select the camera
     this.selectedCameraIndex.set(index);
   }
 
@@ -221,23 +231,23 @@ export class MultiCamerasComponent implements AfterViewInit, OnDestroy {
 
   async snip(): Promise<void> {
     try {
-      const videoElement = this.videoContainer?.nativeElement.querySelector('video');
-      if (!videoElement) {
+      let element: HTMLElement | null = null;
+
+      if (this.viewMode() === 'single') {
+        element = this.videoElement?.nativeElement || null;
+      } else {
+        // In grid view, snip the entire grid container
+        const wrapper = document.querySelector('.webcam-wrapper');
+        element = wrapper?.querySelector('.grid-container') || null;
+      }
+
+      if (!element) {
         this.errorMessage = 'No video available to capture.';
         return;
       }
 
-      const canvas = document.createElement('canvas');
-      canvas.width = videoElement.videoWidth;
-      canvas.height = videoElement.videoHeight;
-      const ctx = canvas.getContext('2d');
-
-      if (!ctx) {
-        this.errorMessage = 'Unable to capture image.';
-        return;
-      }
-
-      ctx.drawImage(videoElement, 0, 0);
+      // Use html2canvas to capture the grid or single video
+      const canvas = await this.captureElement(element);
 
       const blob = await new Promise<Blob | null>((resolve) => {
         canvas.toBlob(resolve);
@@ -258,6 +268,49 @@ export class MultiCamerasComponent implements AfterViewInit, OnDestroy {
       console.error('Snip error:', error);
       throw error;
     }
+  }
+
+  private async captureElement(element: HTMLElement): Promise<HTMLCanvasElement> {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      throw new Error('Unable to get canvas context.');
+    }
+
+    // For single video, just draw the video frame
+    if (this.viewMode() === 'single') {
+      const video = element as HTMLVideoElement;
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+      return canvas;
+    }
+
+    // For grid view, capture all video elements
+    const videos = Array.from(element.querySelectorAll('video')) as HTMLVideoElement[];
+    if (videos.length === 0) {
+      throw new Error('No videos found to capture.');
+    }
+
+    // Calculate grid dimensions
+    const itemsPerRow = Math.ceil(Math.sqrt(videos.length));
+    const videoWidth = videos[0].videoWidth || 640;
+    const videoHeight = videos[0].videoHeight || 480;
+
+    canvas.width = itemsPerRow * videoWidth;
+    canvas.height = Math.ceil(videos.length / itemsPerRow) * videoHeight;
+
+    // Draw each video in grid pattern
+    videos.forEach((video, index) => {
+      const row = Math.floor(index / itemsPerRow);
+      const col = index % itemsPerRow;
+      const x = col * videoWidth;
+      const y = row * videoHeight;
+      ctx.drawImage(video, x, y, videoWidth, videoHeight);
+    });
+
+    return canvas;
   }
 
   ngOnDestroy(): void {
