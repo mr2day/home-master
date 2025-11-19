@@ -1,15 +1,64 @@
 <div class="webcam-container">
-  <div class="webcam-wrapper">
-    <video
-      #videoElement
-      class="webcam-video"
-      autoplay
-      playsinline
-    ></video>
+  <div class="webcam-wrapper" [ngClass]="'mode-' + cameraMode()">
+    @if (cameraMode() === 'split') {
+      <div class="camera-left">
+        <video
+          #videoElement
+          class="webcam-video"
+          autoplay
+          playsinline
+        ></video>
+      </div>
+      <div class="camera-right">
+        <video
+          #videoElement2
+          class="webcam-video"
+          autoplay
+          playsinline
+        ></video>
+      </div>
+    } @else {
+      <video
+        #videoElement
+        class="webcam-video"
+        autoplay
+        playsinline
+      ></video>
+    }
 
     @if (errorMessage) {
       <div class="error-message">
         {{ errorMessage }}
+      </div>
+    }
+    @if (availableCameras().length > 0) {
+      <div class="camera-mode-buttons">
+        <button
+          class="camera-mode-btn"
+          [class.active]="cameraMode() === 'single' && selectedCameraId() === availableCameras()[0].deviceId"
+          (click)="switchToPrimaryCamera()"
+        >
+          Camera 1
+          <span class="btn-indicator" [class.active]="cameraMode() === 'single' && selectedCameraId() === availableCameras()[0].deviceId">●</span>
+        </button>
+        @if (availableCameras().length > 1) {
+          <button
+            class="camera-mode-btn"
+            [class.active]="cameraMode() === 'single' && selectedCameraId() === availableCameras()[1].deviceId"
+            (click)="switchToSecondaryCamera()"
+          >
+            Camera 2
+            <span class="btn-indicator" [class.active]="cameraMode() === 'single' && selectedCameraId() === availableCameras()[1].deviceId">●</span>
+          </button>
+          <button
+            class="camera-mode-btn"
+            [class.active]="cameraMode() === 'split'"
+            (click)="toggleCameraMode()"
+          >
+            Split View
+            <span class="btn-indicator" [class.active]="cameraMode() === 'split'">●</span>
+          </button>
+        }
       </div>
     }
   </div>

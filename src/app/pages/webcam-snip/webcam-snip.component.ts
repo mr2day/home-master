@@ -1,14 +1,16 @@
-import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy, signal, computed, effect } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { HButtonComponent } from '@home-master/ui';
 
 @Component({
   selector: 'app-webcam-snip',
-  imports: [HButtonComponent],
+  imports: [HButtonComponent, CommonModule],
   templateUrl: './webcam-snip.component.html',
   styleUrl: './webcam-snip.component.scss'
 })
 export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
-  @ViewChild('videoElement') videoElement!: ElementRef<HTMLVideoElement>;
+  @ViewChild('videoElement', { read: ElementRef }) videoElement!: ElementRef<HTMLVideoElement>;
+  @ViewChild('videoElement2', { read: ElementRef, static: false }) videoElement2?: ElementRef<HTMLVideoElement>;
   errorMessage: string = '';
   isRecording = signal(false);
   recordingTime = signal('00:00');
@@ -22,8 +24,14 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   contrastValue = signal(50);
   exposureCompensationValue = signal(40);
   resolutionValue = signal('');
+  availableCameras = signal<MediaDeviceInfo[]>([]);
+  selectedCameraId = signal<string>('');
+  selectedCamera2Id = signal<string>('');
+  cameraMode = signal<'single' | 'split'>('single');
   private mediaStream: MediaStream | null = null;
+  private mediaStream2: MediaStream | null = null;
   private videoTrack: MediaStreamTrack | null = null;
+  private videoTrack2: MediaStreamTrack | null = null;
   private mediaRecorder: MediaRecorder | null = null;
   private recordedChunks: Blob[] = [];
   private recordingStartTime: number = 0;
@@ -36,6 +44,22 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     { width: 640, height: 480 }
   ];
 
+  constructor() {
+    // Set up effect to update displayed stream when selected camera changes
+    effect(() => {
+      // Read the signal to establish dependency
+      this.selectedCameraId();
+      // Update the display in the next tick to ensure view is ready
+      setTimeout(() => this.updateDisplayedStream(), 0);
+    });
+
+    // Set up effect to update display when camera mode changes
+    effect(() => {
+      this.cameraMode();
+      setTimeout(() => this.updateDisplayedStream(), 0);
+    });
+  }
+
   // Action used by h-button to toggle recording with loader/result UI
   toggleRecordingAction = async (): Promise<void> => {
     this.toggleRecording();
@@ -45,19 +69,136 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   };
 
   ngAfterViewInit(): void {
-    this.startWebcam();
+    this.initializeCameras();
+  }
+
+  private async initializeCameras(): Promise<void> {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cameras = devices.filter(device => device.kind === 'videoinput');
+
+      if (cameras.length === 0) {
+        this.errorMessage = 'No cameras found on this device.';
+        return;
+      }
+
+      this.availableCameras.set(cameras);
+      this.selectedCameraId.set(cameras[0].deviceId);
+      // Set camera 2 to the second camera if available, otherwise leave empty
+      if (cameras.length > 1) {
+        this.selectedCamera2Id.set(cameras[1].deviceId);
+        // Start both cameras continuously
+        await Promise.all([
+          this.startPrimaryCameraStream(),
+          this.startSecondaryCameraStream()
+        ]);
+      } else {
+        this.selectedCamera2Id.set('');
+        await this.startPrimaryCameraStream();
+      }
+    } catch (error) {
+      this.errorMessage = 'Unable to enumerate cameras.';
+      console.error('Camera enumeration error:', error);
+    }
+  }
+
+  private async startPrimaryCameraStream(): Promise<void> {
+    try {
+      // Probe all supported resolutions for the selected camera
+      const available = await this.probeAvailableResolutions(this.selectedCameraId());
+
+      // Pick default resolution: prefer 1280x720, else next smaller, else first available
+      let chosen = this.pickDefaultResolution(available);
+
+      // Fallback: if no specific resolution works, try without exact constraints
+      if (!chosen) {
+        console.warn('No exact resolutions supported, attempting flexible resolution');
+        chosen = { width: 1280, height: 720 };
+        this.availableResolutions.set([]);
+      } else {
+        const initialResolution = this.formatResolution(chosen);
+        this.resolutionValue.set(initialResolution);
+        this.availableResolutions.set(available);
+      }
+
+      // Open the actual stream for the primary camera
+      let stream: MediaStream;
+      if (available.length > 0) {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: this.selectedCameraId() }, width: { exact: chosen.width }, height: { exact: chosen.height }, frameRate: { ideal: 30 } },
+          audio: false
+        });
+      } else {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: this.selectedCameraId() }, width: { ideal: chosen.width }, height: { ideal: chosen.height }, frameRate: { ideal: 30 } },
+          audio: false
+        });
+      }
+
+      this.videoTrack = stream.getVideoTracks()[0];
+      await this.applyVideoConstraints(this.videoTrack, this.selectedCameraId());
+
+      this.mediaStream = stream;
+      // Don't bind directly; let updateDisplayedStream handle it based on mode
+      this.updateDisplayedStream();
+
+      this.initializeRecorder();
+
+      // Ensure initial defaults are applied to the device after stream is ready
+      await this.reassertManualFocusAndExposure();
+    } catch (error) {
+      this.errorMessage = 'Unable to access primary camera. Please check permissions.';
+      console.error('Primary camera error:', error);
+    }
+  }
+
+  private async startSecondaryCameraStream(): Promise<void> {
+    try {
+      // Use lower resolution for secondary camera to reduce resource usage
+      const resolution = { width: 640, height: 480 };
+
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: this.selectedCamera2Id() }, width: { exact: resolution.width }, height: { exact: resolution.height }, frameRate: { ideal: 30 } },
+          audio: false
+        });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: this.selectedCamera2Id() }, width: { ideal: resolution.width }, height: { ideal: resolution.height }, frameRate: { ideal: 30 } },
+          audio: false
+        });
+      }
+
+      this.videoTrack2 = stream.getVideoTracks()[0];
+      await this.applyVideoConstraints(this.videoTrack2, this.selectedCamera2Id());
+
+      this.mediaStream2 = stream;
+      // Don't bind directly; let updateDisplayedStream handle it based on mode
+      this.updateDisplayedStream();
+    } catch (error) {
+      console.warn('Unable to start secondary camera stream:', error);
+    }
   }
 
   private formatResolution(res: { width: number; height: number }): string {
     return `${res.width}x${res.height}`;
   }
 
-  private async probeAvailableResolutions(): Promise<{ width: number; height: number }[]> {
+  private async probeAvailableResolutions(deviceId?: string): Promise<{ width: number; height: number }[]> {
     const available: { width: number; height: number }[] = [];
     for (const res of this.supportedResolutions) {
       try {
+        const videoConstraint: any = {
+          width: { exact: res.width },
+          height: { exact: res.height },
+          frameRate: { ideal: 30 }
+        };
+        if (deviceId) {
+          videoConstraint.deviceId = { exact: deviceId };
+        }
         const testStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { exact: res.width }, height: { exact: res.height }, frameRate: { ideal: 30 } },
+          video: videoConstraint,
           audio: false
         });
         // If successful, immediately stop and record availability
@@ -86,80 +227,196 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     return available[0];
   }
 
-  private async startWebcam(): Promise<void> {
-    try {
-      // Probe all supported resolutions
-      const available = await this.probeAvailableResolutions();
+  private isTrustCamera(deviceId: string): boolean {
+    const camera = this.availableCameras().find(c => c.deviceId === deviceId);
+    if (!camera) {
+      return false;
+    }
+    // Check if the camera label contains "Trust"
+    return camera.label.toLowerCase().includes('trust');
+  }
 
-      // Pick default resolution: prefer 1280x720, else next smaller, else first available
-      const chosen = this.pickDefaultResolution(available);
-      if (!chosen) {
-        throw new Error('No supported resolution found');
+  // Update the displayed stream based on selected camera and mode
+  private updateDisplayedStream(): void {
+    const mode = this.cameraMode();
+
+    // In split mode, both video elements should be bound to their respective streams
+    if (mode === 'split') {
+      if (this.videoElement?.nativeElement) {
+        // Left side shows primary camera (camera 1)
+        this.videoElement.nativeElement.srcObject = this.mediaStream;
       }
-      const initialResolution = this.formatResolution(chosen);
-      // Set the selected value BEFORE populating options/rendering to avoid initial max selection
-      this.resolutionValue.set(initialResolution);
-      // Now publish available options for the select
-      this.availableResolutions.set(available);
+      if (this.videoElement2?.nativeElement) {
+        // Right side shows secondary camera (camera 2)
+        this.videoElement2.nativeElement.srcObject = this.mediaStream2;
+      }
+    } else {
+      // In single mode, show the selected camera
+      if (!this.videoElement?.nativeElement) {
+        return;
+      }
+      const selectedId = this.selectedCameraId();
+      const camera2Id = this.availableCameras()[1]?.deviceId;
 
-      // Open the actual stream at the chosen resolution
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { exact: chosen.width }, height: { exact: chosen.height }, frameRate: { ideal: 30 } },
-        audio: false
-      });
-      this.videoTrack = stream.getVideoTracks()[0];
-      console.log(this.videoTrack.getCapabilities());
+      // If selected camera is camera 2, show mediaStream2, otherwise show primary stream
+      if (selectedId === camera2Id && this.mediaStream2) {
+        this.videoElement.nativeElement.srcObject = this.mediaStream2;
+      } else {
+        this.videoElement.nativeElement.srcObject = this.mediaStream;
+      }
+    }
+  }
 
+  private async applyVideoConstraints(videoTrack: MediaStreamTrack, deviceId?: string): Promise<void> {
+    // Check if this is a Trust camera
+    const isTrustCamera = deviceId ? this.isTrustCamera(deviceId) : true;
+
+    if (!isTrustCamera) {
+      // For non-Trust cameras, try to reset to auto mode, but don't fail if unsupported
+      console.log('Setting non-Trust camera to auto mode');
+      // Try setting both modes together first
       try {
-        await this.videoTrack.applyConstraints({
+        await videoTrack.applyConstraints({
+          advanced: [{ focusMode: 'auto', exposureMode: 'auto' } as any]
+        });
+      } catch (e) {
+        // If both together fails, try individually
+        try {
+          await videoTrack.applyConstraints({
+            advanced: [{ focusMode: 'auto' } as any]
+          });
+        } catch (e2) {
+          console.log('focusMode auto not supported');
+        }
+        try {
+          await videoTrack.applyConstraints({
+            advanced: [{ exposureMode: 'auto' } as any]
+          });
+        } catch (e3) {
+          console.log('exposureMode auto not supported');
+        }
+      }
+      return;
+    }
+
+    const capabilities = videoTrack.getCapabilities() as any;
+    console.log('Camera capabilities:', capabilities);
+
+    // Check and apply focusMode if supported
+    if (capabilities.focusMode && Array.isArray(capabilities.focusMode) && capabilities.focusMode.includes('manual')) {
+      try {
+        await videoTrack.applyConstraints({
           advanced: [{ focusMode: 'manual' } as any]
         });
       } catch (error) {
-        console.warn('Manual focus mode not supported:', error);
+        console.warn('Failed to set manual focus mode:', error);
       }
+    }
 
+    // Check and apply exposureMode if supported
+    if (capabilities.exposureMode && Array.isArray(capabilities.exposureMode) && capabilities.exposureMode.includes('manual')) {
       try {
-        await this.videoTrack.applyConstraints({
+        await videoTrack.applyConstraints({
           advanced: [{ exposureMode: 'manual' } as any]
         });
       } catch (error) {
-        console.warn('Manual exposure mode not supported:', error);
+        console.warn('Failed to set manual exposure mode:', error);
       }
+    }
 
+    // Check and apply exposureTime if supported
+    if (capabilities.exposureTime) {
       try {
-        // Snap to nearest stop and apply
         const nearest = this.getNearestExposureStop(this.shutterSpeedValue());
         this.setExposureStopByValue(nearest);
-        await this.videoTrack.applyConstraints({
+        await videoTrack.applyConstraints({
           advanced: [{ exposureTime: nearest } as any]
         });
       } catch (error) {
-        console.warn('Manual exposure time not supported:', error);
+        console.warn('Failed to set exposure time:', error);
       }
+    }
 
+    // Check and apply brightness, contrast, exposureCompensation individually with range clamping
+    const advancedConstraints: any = {};
+
+    if (capabilities.brightness) {
+      const brightnessValue = this.brightnessValue();
+      // Clamp to the supported range
+      const min = capabilities.brightness.min !== undefined ? capabilities.brightness.min : 0;
+      const max = capabilities.brightness.max !== undefined ? capabilities.brightness.max : 100;
+      advancedConstraints.brightness = Math.max(min, Math.min(max, brightnessValue));
+      console.log(`Brightness: ${brightnessValue} -> ${advancedConstraints.brightness} (range: ${min}-${max})`);
+    }
+
+    if (capabilities.contrast) {
+      const contrastValue = this.contrastValue();
+      // Clamp to the supported range
+      const min = capabilities.contrast.min !== undefined ? capabilities.contrast.min : 0;
+      const max = capabilities.contrast.max !== undefined ? capabilities.contrast.max : 100;
+      advancedConstraints.contrast = Math.max(min, Math.min(max, contrastValue));
+      console.log(`Contrast: ${contrastValue} -> ${advancedConstraints.contrast} (range: ${min}-${max})`);
+    }
+
+    if (capabilities.exposureCompensation) {
+      const exposureCompensationValue = this.exposureCompensationValue();
+      // Clamp to the supported range
+      const min = capabilities.exposureCompensation.min !== undefined ? capabilities.exposureCompensation.min : 0;
+      const max = capabilities.exposureCompensation.max !== undefined ? capabilities.exposureCompensation.max : 100;
+      advancedConstraints.exposureCompensation = Math.max(min, Math.min(max, exposureCompensationValue));
+      console.log(`Exposure Compensation: ${exposureCompensationValue} -> ${advancedConstraints.exposureCompensation} (range: ${min}-${max})`);
+    }
+
+    // Only apply if there are supported constraints
+    if (Object.keys(advancedConstraints).length > 0) {
       try {
-        await this.videoTrack.applyConstraints({
-          advanced: [{ brightness: this.brightnessValue(), contrast: this.contrastValue(), exposureCompensation: this.exposureCompensationValue() } as any]
+        await videoTrack.applyConstraints({
+          advanced: [advancedConstraints]
         });
       } catch (error) {
-        console.warn('Manual brightness/contrast/exposure compensation not supported:', error);
+        console.warn('Failed to apply brightness/contrast/exposureCompensation:', error);
+      }
+    }
+  }
+
+  private async startSecondaryCamera(resolution: { width: number; height: number }): Promise<void> {
+    try {
+      let stream: MediaStream;
+      // Try with exact resolution first
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: this.selectedCamera2Id() }, width: { exact: resolution.width }, height: { exact: resolution.height }, frameRate: { ideal: 30 } },
+          audio: false
+        });
+      } catch {
+        // Fallback to ideal constraints
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: this.selectedCamera2Id() }, width: { ideal: resolution.width }, height: { ideal: resolution.height }, frameRate: { ideal: 30 } },
+          audio: false
+        });
       }
 
-      this.mediaStream = stream;
-      this.videoElement.nativeElement.srcObject = this.mediaStream;
+      this.videoTrack2 = stream.getVideoTracks()[0];
+      console.log('Secondary camera stream started:', this.videoTrack2);
+      await this.applyVideoConstraints(this.videoTrack2, this.selectedCamera2Id());
 
-      this.initializeRecorder();
-
-      // Ensure initial defaults are applied to the device after stream is ready
-      await this.reassertManualFocusAndExposure();
+      this.mediaStream2 = stream;
+      // Don't bind directly; let updateDisplayedStream handle it based on mode
+      this.updateDisplayedStream();
     } catch (error) {
-      this.errorMessage = 'Unable to access webcam. Please check permissions.';
-      console.error('Webcam error:', error);
+      console.warn('Unable to start secondary camera:', error);
     }
   }
 
   private async reassertManualFocusAndExposure(): Promise<void> {
     if (!this.videoTrack) return;
+
+    // Only apply constraints to Trust cameras
+    if (!this.isTrustCamera(this.selectedCameraId())) {
+      console.log('Skipping constraint reassertion for non-Trust camera');
+      return;
+    }
+
     try {
       await this.videoTrack.applyConstraints({
         advanced: [{ focusMode: 'manual' } as any]
@@ -271,6 +528,9 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
 
   async applyFocusDistance(distance: number): Promise<void> {
     if (!this.videoTrack) return;
+    if (!this.isTrustCamera(this.selectedCameraId())) {
+      return; // Skip constraints for non-Trust cameras
+    }
     const clampedDistance = Math.max(0, Math.min(1023, distance));
     this.focusValue.set(clampedDistance);
     try {
@@ -295,6 +555,9 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
 
   async applyShutterSpeed(speed: number): Promise<void> {
     if (!this.videoTrack) return;
+    if (!this.isTrustCamera(this.selectedCameraId())) {
+      return; // Skip constraints for non-Trust cameras
+    }
     const clampedSpeed = Math.max(1, Math.min(10000, speed));
     this.shutterSpeedValue.set(clampedSpeed);
     try {
@@ -368,6 +631,9 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
 
   async applyBrightness(brightness: number): Promise<void> {
     if (!this.videoTrack) return;
+    if (!this.isTrustCamera(this.selectedCameraId())) {
+      return; // Skip constraints for non-Trust cameras
+    }
     const clampedBrightness = Math.max(-64, Math.min(64, brightness));
     this.brightnessValue.set(clampedBrightness);
     try {
@@ -392,6 +658,9 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
 
   async applyContrast(contrast: number): Promise<void> {
     if (!this.videoTrack) return;
+    if (!this.isTrustCamera(this.selectedCameraId())) {
+      return; // Skip constraints for non-Trust cameras
+    }
     const clampedContrast = Math.max(0, Math.min(100, contrast));
     this.contrastValue.set(clampedContrast);
     try {
@@ -416,6 +685,9 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
 
   async applyExposureCompensation(compensation: number): Promise<void> {
     if (!this.videoTrack) return;
+    if (!this.isTrustCamera(this.selectedCameraId())) {
+      return; // Skip constraints for non-Trust cameras
+    }
     const clampedCompensation = Math.max(0, Math.min(128, compensation));
     this.exposureCompensationValue.set(clampedCompensation);
     try {
@@ -440,6 +712,9 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
 
   async applyResolution(resolutionStr: string): Promise<void> {
     if (!this.videoTrack) return;
+    if (!this.isTrustCamera(this.selectedCameraId())) {
+      return; // Skip constraints for non-Trust cameras
+    }
     const resolution = this.supportedResolutions.find(
       r => `${r.width}x${r.height}` === resolutionStr
     );
@@ -502,6 +777,99 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  async switchToPrimaryCamera(): Promise<void> {
+    if (this.cameraMode() === 'split') {
+      this.cameraMode.set('single');
+      // Stop secondary camera when exiting split mode
+      if (this.mediaStream2) {
+        this.mediaStream2.getTracks().forEach(track => track.stop());
+        this.mediaStream2 = null;
+        this.videoTrack2 = null;
+        if (this.videoElement2) {
+          this.videoElement2.nativeElement.srcObject = null;
+        }
+      }
+    }
+    // Just switch to the primary camera without restarting - the stream is already running
+    if (this.selectedCameraId() !== this.availableCameras()[0].deviceId) {
+      this.selectedCameraId.set(this.availableCameras()[0].deviceId);
+    }
+  }
+
+  async switchToSecondaryCamera(): Promise<void> {
+    if (this.availableCameras().length < 2) {
+      return; // No secondary camera available
+    }
+    if (this.cameraMode() === 'split') {
+      this.cameraMode.set('single');
+      // Stop secondary camera when exiting split mode
+      if (this.mediaStream2) {
+        this.mediaStream2.getTracks().forEach(track => track.stop());
+        this.mediaStream2 = null;
+        this.videoTrack2 = null;
+        if (this.videoElement2) {
+          this.videoElement2.nativeElement.srcObject = null;
+        }
+      }
+    }
+    // Just switch to the secondary camera without restarting - the stream is already running
+    if (this.selectedCameraId() !== this.availableCameras()[1].deviceId) {
+      this.selectedCameraId.set(this.availableCameras()[1].deviceId);
+    }
+  }
+
+  async switchPrimaryCamera(deviceId: string): Promise<void> {
+    // Just switch which camera is displayed without restarting - the stream is already running
+    this.selectedCameraId.set(deviceId);
+  }
+
+  async switchSecondaryCamera(deviceId: string): Promise<void> {
+    this.selectedCamera2Id.set(deviceId);
+    // Stop secondary stream and restart if in split mode
+    if (this.mediaStream2) {
+      this.mediaStream2.getTracks().forEach(track => track.stop());
+      this.mediaStream2 = null;
+      this.videoTrack2 = null;
+    }
+    if (this.cameraMode() === 'split' && deviceId) {
+      const resolution = this.availableResolutions()[0] || { width: 1280, height: 720 };
+      await this.startSecondaryCamera(resolution);
+    }
+  }
+
+  async toggleCameraMode(): Promise<void> {
+    const newMode = this.cameraMode() === 'single' ? 'split' : 'single';
+    this.cameraMode.set(newMode);
+
+    if (newMode === 'split' && this.selectedCamera2Id() && !this.mediaStream2) {
+      // Start second camera in split mode with lower resolution to avoid constraints
+      // Wait a tick for the template to render the second video element
+      await new Promise(resolve => setTimeout(resolve, 0));
+      const splitResolution = { width: 640, height: 480 };
+      await this.startSecondaryCamera(splitResolution);
+      // Both camera streams are now running continuously, just display both
+    } else if (newMode === 'single' && this.mediaStream2) {
+      // Stop second camera when exiting split mode
+      this.mediaStream2.getTracks().forEach(track => track.stop());
+      this.mediaStream2 = null;
+      this.videoTrack2 = null;
+      if (this.videoElement2) {
+        this.videoElement2.nativeElement.srcObject = null;
+      }
+      // Primary camera continues streaming in the background
+    }
+  }
+
+  onPrimaryCameraChange(event: Event): void {
+    const deviceId = (event.target as HTMLSelectElement).value;
+    this.switchPrimaryCamera(deviceId);
+  }
+
+  onSecondaryCameraChange(event: Event): void {
+    const deviceId = (event.target as HTMLSelectElement).value;
+    this.switchSecondaryCamera(deviceId);
+  }
+
   ngOnDestroy(): void {
     if (this.recordingTimer !== null) {
       clearInterval(this.recordingTimer);
@@ -511,6 +879,9 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     }
     if (this.mediaStream) {
       this.mediaStream.getTracks().forEach(track => track.stop());
+    }
+    if (this.mediaStream2) {
+      this.mediaStream2.getTracks().forEach(track => track.stop());
     }
   }
 }
