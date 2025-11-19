@@ -212,14 +212,18 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
         return;
       }
       const selectedId = this.selectedCameraId();
+      const camera1Id = this.availableCameras()[0]?.deviceId;
       const camera2Id = this.availableCameras()[1]?.deviceId;
 
-      // If selected camera is camera 2, show mediaStream2, otherwise show primary stream
-      if (selectedId === camera2Id && this.mediaStream2) {
+      // Show the stream corresponding to the selected camera
+      if (selectedId === camera2Id) {
+        // Camera 2 is selected - MUST use mediaStream2
         this.videoElement.nativeElement.srcObject = this.mediaStream2;
-      } else {
+      } else if (selectedId === camera1Id) {
+        // Camera 1 is selected - use primary stream
         this.videoElement.nativeElement.srcObject = this.mediaStream;
       }
+      // If selectedId doesn't match either camera, don't change the stream
     }
   }
 
@@ -463,28 +467,25 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   }
 
   async switchToPrimaryCamera(): Promise<void> {
-    // Switch to the primary camera FIRST so selectedCameraId is correct
-    // when cameraMode change triggers the effect
-    if (this.selectedCameraId() !== this.availableCameras()[0].deviceId) {
+    // If exiting split mode, just change the selected camera and mode
+    // DO NOT stop mediaStream2 yet - we might need it later!
+    if (this.cameraMode() === 'split') {
+      // Set selected camera FIRST
       this.selectedCameraId.set(this.availableCameras()[0].deviceId);
-      // If the primary stream was stopped, restart it
+      // THEN exit split mode (triggers effect with correct selectedCameraId)
+      this.cameraMode.set('single');
+      // Clean up the unused video element binding (but don't stop the stream!)
+      if (this.videoElement2) {
+        this.videoElement2.nativeElement.srcObject = null;
+      }
+    } else {
+      // Already in single mode, just switch to camera 1
+      // Ensure stream is initialized
       if (!this.mediaStream) {
         await this.startPrimaryCameraStream();
       }
-    }
-
-    // Now exit split mode if needed (this triggers effect with correct selectedCameraId)
-    if (this.cameraMode() === 'split') {
-      this.cameraMode.set('single');
-      // Stop secondary camera when exiting split mode
-      if (this.mediaStream2) {
-        this.mediaStream2.getTracks().forEach(track => track.stop());
-        this.mediaStream2 = null;
-        this.videoTrack2 = null;
-        if (this.videoElement2) {
-          this.videoElement2.nativeElement.srcObject = null;
-        }
-      }
+      // Now switch the displayed camera
+      this.selectedCameraId.set(this.availableCameras()[0].deviceId);
     }
   }
 
@@ -493,28 +494,25 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
       return; // No secondary camera available
     }
 
-    // Switch to the secondary camera FIRST so selectedCameraId is correct
-    // when cameraMode change triggers the effect
-    if (this.selectedCameraId() !== this.availableCameras()[1].deviceId) {
+    // If exiting split mode, just change the selected camera and mode
+    // DO NOT stop mediaStream2 yet - we need it for single view!
+    if (this.cameraMode() === 'split') {
+      // Set selected camera FIRST
       this.selectedCameraId.set(this.availableCameras()[1].deviceId);
-      // If the secondary stream was stopped (e.g., exiting split view), restart it
+      // THEN exit split mode (triggers effect with correct selectedCameraId)
+      this.cameraMode.set('single');
+      // Clean up the unused video element binding (but don't stop the stream!)
+      if (this.videoElement2) {
+        this.videoElement2.nativeElement.srcObject = null;
+      }
+    } else {
+      // Already in single mode, just switch to camera 2
+      // Ensure stream is initialized
       if (!this.mediaStream2) {
         await this.startSecondaryCameraStream();
       }
-    }
-
-    // Now exit split mode if needed (this triggers effect with correct selectedCameraId)
-    if (this.cameraMode() === 'split') {
-      this.cameraMode.set('single');
-      // Stop secondary camera when exiting split mode
-      if (this.mediaStream2) {
-        this.mediaStream2.getTracks().forEach(track => track.stop());
-        this.mediaStream2 = null;
-        this.videoTrack2 = null;
-        if (this.videoElement2) {
-          this.videoElement2.nativeElement.srcObject = null;
-        }
-      }
+      // Now switch the displayed camera
+      this.selectedCameraId.set(this.availableCameras()[1].deviceId);
     }
   }
 
