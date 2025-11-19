@@ -34,6 +34,9 @@
             [class.active]="selectedCameraIndex() === i && viewMode() === 'single'"
             (click)="selectCamera(i)"
           >
+          @if (isTrustCamera(i)) {
+            <span class="trust-icon" title="Trust Camera">ⓣ</span>
+          }
             Camera {{ i + 1 }}
             <span class="btn-indicator" [class.active]="selectedCameraIndex() === i && viewMode() === 'single'">●</span>
           </button>

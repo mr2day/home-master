@@ -224,6 +224,12 @@ export class MultiCamerasComponent implements AfterViewInit, OnDestroy {
     this.selectedCameraIndex.set(index);
   }
 
+  isTrustCamera(index: number): boolean {
+    const camera = this.availableCameras()[index];
+    if (!camera) return false;
+    return camera.label.toLowerCase().includes('trust');
+  }
+
   toggleViewMode(): void {
     const newMode = this.viewMode() === 'single' ? 'grid' : 'single';
     this.viewMode.set(newMode);
