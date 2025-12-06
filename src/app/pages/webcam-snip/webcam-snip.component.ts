@@ -57,7 +57,7 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     for (const res of this.supportedResolutions) {
       try {
         const testStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { exact: res.width }, height: { exact: res.height }, frameRate: { ideal: 30 } },
+          video: { width: { exact: res.width }, height: { exact: res.height } },
           audio: false
         });
         // If successful, immediately stop and record availability
