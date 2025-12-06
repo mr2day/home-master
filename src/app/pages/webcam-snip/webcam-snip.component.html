@@ -71,6 +71,9 @@
             <span class="recording-indicator"><span class="recording-dot"></span> Recording</span>
             <span class="recording-time">{{ recordingTime() }}</span>
           }
+          @if (dccService.isConnected()) {
+            <span class="dcc-connected">DCC Connected</span>
+          }
         </div>
         <div class="buttons">
           <h-button
@@ -85,6 +88,20 @@
             [ratio]="'square'"
             [action]="snipAction"
           ></h-button>
+          <h-button
+            [label]="dccService.isConnected() ? 'Disconnect' : 'Connect DCC'"
+            [size]="'sm'"
+            [ratio]="'square'"
+            [action]="toggleDccConnectionAction"
+          ></h-button>
+          @if (dccService.isConnected()) {
+            <h-button
+              [label]="'Test'"
+              [size]="'sm'"
+              [ratio]="'square'"
+              [action]="testDccAction"
+            ></h-button>
+          }
         </div>
       </div>
     </div>

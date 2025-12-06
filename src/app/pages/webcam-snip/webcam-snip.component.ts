@@ -1,5 +1,6 @@
-import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy, signal, computed } from '@angular/core';
+import { Component, ViewChild, ElementRef, AfterViewInit, OnDestroy, signal, computed, inject } from '@angular/core';
 import { HButtonComponent } from '@home-master/ui';
+import { DccService } from '../../services/dcc';
 
 @Component({
   selector: 'app-webcam-snip',
@@ -9,6 +10,7 @@ import { HButtonComponent } from '@home-master/ui';
 })
 export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   @ViewChild('videoElement') videoElement!: ElementRef<HTMLVideoElement>;
+  dccService = inject(DccService);
   errorMessage: string = '';
   isRecording = signal(false);
   recordingTime = signal('00:00');
@@ -39,6 +41,19 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   };
   snipAction = async (): Promise<void> => {
     await this.snip();
+  };
+
+  // DCC actions
+  toggleDccConnectionAction = async (): Promise<void> => {
+    if (this.dccService.isConnected()) {
+      await this.dccService.disconnect();
+    } else {
+      await this.dccService.connect();
+    }
+  };
+
+  testDccAction = async (): Promise<void> => {
+    await this.dccService.getStatus();
   };
 
   ngAfterViewInit(): void {
