@@ -65,6 +65,70 @@
   </div>
   <div class="button-group">
     <div class="controls-column">
+      @if (dccService.isConnected()) {
+        <div class="train-controls">
+          <div class="train-control-section">
+            <label for="loco-address">Loco Address</label>
+            <input
+              id="loco-address"
+              type="number"
+              min="1"
+              max="10239"
+              [value]="locoAddress()"
+              (change)="onLocoAddressChange($event)"
+              class="train-input"
+            />
+          </div>
+
+          <div class="train-control-section">
+            <label>Track Power</label>
+            <h-button
+              [label]="trackPower() ? 'Power OFF' : 'Power ON'"
+              [size]="'sm'"
+              [ratio]="'square'"
+              [action]="toggleTrackPowerAction"
+            ></h-button>
+          </div>
+
+          <div class="train-control-section">
+            <label for="speed-slider">Speed: {{ locoSpeed() }}</label>
+            <input
+              id="speed-slider"
+              type="range"
+              min="0"
+              max="126"
+              [value]="locoSpeed()"
+              (input)="onSpeedChange($event)"
+              class="speed-slider"
+            />
+          </div>
+
+          <div class="train-control-section">
+            <label>Direction</label>
+            <h-button
+              [label]="locoDirection() ? 'Forward' : 'Reverse'"
+              [size]="'sm'"
+              [ratio]="'square'"
+              [action]="toggleDirection.bind(this)"
+            ></h-button>
+          </div>
+
+          <div class="train-control-section">
+            <label>Functions</label>
+            <div class="function-buttons">
+              @for (fn of [0, 1, 2, 3, 4]; track fn) {
+                <button
+                  class="function-btn"
+                  [class.active]="isFunctionActive(fn)"
+                  (click)="toggleFunction(fn)"
+                >
+                  F{{ fn }}
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+      }
       <div class="action-controls">
         <div class="record-info">
           @if (isRecording()) {

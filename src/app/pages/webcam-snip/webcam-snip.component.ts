@@ -56,6 +56,101 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     await this.dccService.getStatus();
   };
 
+  // Train control state
+  locoAddress = signal(3);
+  locoSpeed = signal(0);
+  locoDirection = signal(true); // true = forward, false = reverse
+  trackPower = signal(false);
+  activeFunctions = signal<Set<number>>(new Set());
+
+  // Train control actions
+  toggleTrackPowerAction = async (): Promise<void> => {
+    await this.toggleTrackPower();
+  };
+
+  async toggleTrackPower(): Promise<void> {
+    const newState = !this.trackPower();
+    try {
+      await this.dccService.sendCommand(newState ? '<1>' : '<0>');
+      this.trackPower.set(newState);
+      console.log(`Track power ${newState ? 'ON' : 'OFF'}`);
+    } catch (error) {
+      console.error('Failed to toggle track power:', error);
+    }
+  }
+
+  onLocoAddressChange(event: Event): void {
+    const value = parseInt((event.target as HTMLInputElement).value, 10);
+    if (!isNaN(value) && value >= 1 && value <= 10239) {
+      this.locoAddress.set(value);
+    }
+  }
+
+  onSpeedChange(event: Event): void {
+    const value = parseInt((event.target as HTMLInputElement).value, 10);
+    if (!isNaN(value)) {
+      this.setLocoSpeed(value);
+    }
+  }
+
+  async setLocoSpeed(speed: number): Promise<void> {
+    const clampedSpeed = Math.max(0, Math.min(126, speed));
+    this.locoSpeed.set(clampedSpeed);
+    if (this.dccService.isConnected()) {
+      try {
+        await this.dccService.setLocoSpeed(
+          this.locoAddress(),
+          clampedSpeed,
+          this.locoDirection()
+        );
+      } catch (error) {
+        console.error('Failed to set speed:', error);
+      }
+    }
+  }
+
+  async toggleDirection(): Promise<void> {
+    const newDirection = !this.locoDirection();
+    this.locoDirection.set(newDirection);
+    if (this.dccService.isConnected()) {
+      try {
+        await this.dccService.setLocoSpeed(
+          this.locoAddress(),
+          this.locoSpeed(),
+          newDirection
+        );
+      } catch (error) {
+        console.error('Failed to toggle direction:', error);
+      }
+    }
+  }
+
+  async toggleFunction(funcNum: number): Promise<void> {
+    const functions = new Set(this.activeFunctions());
+    const isActive = functions.has(funcNum);
+
+    if (isActive) {
+      functions.delete(funcNum);
+    } else {
+      functions.add(funcNum);
+    }
+
+    this.activeFunctions.set(functions);
+
+    if (this.dccService.isConnected()) {
+      try {
+        // DCC-EX function command: <F CAB FUNC STATE>
+        await this.dccService.sendCommand(`<F ${this.locoAddress()} ${funcNum} ${isActive ? 0 : 1}>`);
+      } catch (error) {
+        console.error(`Failed to toggle function ${funcNum}:`, error);
+      }
+    }
+  }
+
+  isFunctionActive(funcNum: number): boolean {
+    return this.activeFunctions().has(funcNum);
+  }
+
   ngAfterViewInit(): void {
     this.startWebcam();
   }

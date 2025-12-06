@@ -236,6 +236,125 @@
   font-size: 14px;
 }
 
+.train-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: flex-end;
+  margin-bottom: 1.5rem;
+}
+
+.train-control-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-end;
+
+  label {
+    color: #999;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+}
+
+.train-input {
+  box-sizing: border-box;
+  width: 100px;
+  padding: 0.5rem;
+  background-color: #333;
+  color: #999;
+  border: 1px solid #444;
+  border-radius: 0.25rem;
+  font-size: 14px;
+  text-align: center;
+  font-weight: 600;
+
+  &:focus {
+    outline: none;
+    border-color: #999;
+    color: #fff;
+  }
+
+  &::selection {
+    background-color: #999;
+    color: #222;
+  }
+}
+
+.speed-slider {
+  width: 200px;
+  height: 6px;
+  background: #333;
+  border-radius: 3px;
+  outline: none;
+  appearance: none;
+  border: 1px solid #444;
+
+  &::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: #999;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: #fff;
+    }
+  }
+
+  &::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: #999;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: #fff;
+    }
+  }
+}
+
+.function-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.function-btn {
+  width: 45px;
+  height: 32px;
+  padding: 0;
+  background-color: #333;
+  color: #999;
+  border: 1px solid #444;
+  border-radius: 0.25rem;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #3a3a3a;
+    color: #fff;
+    border-color: #999;
+  }
+
+  &:active,
+  &.active {
+    background-color: #4caf50;
+    color: #fff;
+    border-color: #4caf50;
+  }
+}
+
 .buttons {
   display: flex;
   flex-direction: column;
