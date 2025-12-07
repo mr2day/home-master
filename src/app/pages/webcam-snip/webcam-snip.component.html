@@ -79,13 +79,10 @@
       </div>
 
       <div class="train-control-item">
-        <label>Power</label>
-        <h-button
-          [label]="trackPower() ? 'OFF' : 'ON'"
-          [size]="'sm'"
-          [ratio]="'square'"
-          [action]="toggleTrackPowerAction"
-        ></h-button>
+        <label>Power: {{ trackPower() ? 'ON' : 'OFF' }}</label>
+        <div class="power-buttons">
+          <button class="focus-btn" (click)="toggleTrackPower()">Toggle</button>
+        </div>
       </div>
 
       <div class="train-control-item">

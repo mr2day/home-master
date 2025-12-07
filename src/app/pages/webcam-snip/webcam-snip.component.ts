@@ -64,10 +64,6 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   activeFunctions = signal<Set<number>>(new Set());
 
   // Train control actions
-  toggleTrackPowerAction = async (): Promise<void> => {
-    await this.toggleTrackPower();
-  };
-
   async toggleTrackPower(): Promise<void> {
     const newState = !this.trackPower();
     try {
