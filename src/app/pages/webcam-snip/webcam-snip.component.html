@@ -97,13 +97,11 @@
       </div>
 
       <div class="train-control-item">
-        <label>Dir</label>
-        <h-button
-          [label]="locoDirection() ? 'Fwd' : 'Rev'"
-          [size]="'sm'"
-          [ratio]="'square'"
-          [action]="toggleDirection.bind(this)"
-        ></h-button>
+        <label>Dir: {{ locoDirection() ? 'Forward' : 'Reverse' }}</label>
+        <div class="direction-buttons">
+          <button class="focus-btn" (click)="setDirection(true)">Fwd</button>
+          <button class="focus-btn" (click)="setDirection(false)">Rev</button>
+        </div>
       </div>
 
       <div class="train-control-item">

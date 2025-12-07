@@ -113,18 +113,17 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     this.setLocoSpeed(this.locoSpeed() + delta);
   }
 
-  async toggleDirection(): Promise<void> {
-    const newDirection = !this.locoDirection();
-    this.locoDirection.set(newDirection);
+  async setDirection(forward: boolean): Promise<void> {
+    this.locoDirection.set(forward);
     if (this.dccService.isConnected()) {
       try {
         await this.dccService.setLocoSpeed(
           this.locoAddress(),
           this.locoSpeed(),
-          newDirection
+          forward
         );
       } catch (error) {
-        console.error('Failed to toggle direction:', error);
+        console.error('Failed to set direction:', error);
       }
     }
   }
