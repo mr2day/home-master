@@ -57,7 +57,7 @@
 
   <button
     class="dcc-invert"
-    [class.active]="invertDirectionDisplay()"
+    [class.active]="dccService.invertDirectionDisplay()"
     (click)="toggleDirectionDisplay()"
     title="Invert direction label"
   >
