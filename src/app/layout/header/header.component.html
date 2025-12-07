@@ -3,5 +3,10 @@
     <a routerLink="/" class="header__logo">
       <img src="images/logo-horizontal.png" alt="Home Master Logo" class="header__logo-img">
     </a>
+    @if (dccService.isConnected()) {
+      <div class="header__dcc">
+        <app-dcc-control-bar></app-dcc-control-bar>
+      </div>
+    }
   </div>
 </header>

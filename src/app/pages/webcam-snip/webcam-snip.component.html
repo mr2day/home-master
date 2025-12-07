@@ -42,6 +42,20 @@
         <button class="focus-btn" (click)="adjustFocusBy(-10)">-</button>
       </div>
     </div>
+    <div class="function-control">
+      <label>Functions</label>
+      <div class="function-buttons">
+        @for (fn of functionNumbers; track fn) {
+          <button
+            class="function-btn function-btn--compact"
+            [class.active]="isFunctionActive(fn)"
+            (click)="toggleFunction(fn)"
+          >
+            F{{ fn }}
+          </button>
+        }
+      </div>
+    </div>
     <div class="focus-control">
       <label for="resolution-input">Resolution</label>
       <div class="focus-input-group">
@@ -63,75 +77,6 @@
       </div>
     </div>
   </div>
-  @if (dccService.isConnected()) {
-    <div class="train-controls-bottom">
-      <div class="train-control-item">
-        <label for="loco-address">Loco</label>
-        <input
-          id="loco-address"
-          type="number"
-          min="1"
-          max="10239"
-          [value]="locoAddress()"
-          (change)="onLocoAddressChange($event)"
-          class="train-input"
-        />
-      </div>
-
-      <div class="train-control-item">
-        <label>Power: {{ trackPower() ? 'ON' : 'OFF' }}</label>
-        <div class="power-buttons">
-          <button class="focus-btn" (click)="toggleTrackPower()">Toggle</button>
-        </div>
-      </div>
-
-      <div class="train-control-item">
-        <label>Speed: {{ locoSpeed() }}</label>
-        <div class="speed-buttons">
-          <button class="focus-btn" (click)="adjustSpeedBy(1)">+</button>
-          <button class="focus-btn" (click)="adjustSpeedBy(-1)">-</button>
-        </div>
-      </div>
-
-      <div class="train-control-item">
-        <label>Dir: {{ locoDirection() ? 'Forward' : 'Reverse' }}</label>
-        <div class="direction-buttons">
-          <button class="focus-btn" (click)="setDirection(true)">Fwd</button>
-          <button class="focus-btn" (click)="setDirection(false)">Rev</button>
-        </div>
-      </div>
-
-      <div class="train-control-item">
-        <label>Functions</label>
-        <div class="function-buttons">
-          @for (fn of [0, 1, 2, 3, 4]; track fn) {
-            <button
-              class="function-btn"
-              [class.active]="isFunctionActive(fn)"
-              (click)="toggleFunction(fn)"
-            >
-              F{{ fn }}
-            </button>
-          }
-        </div>
-      </div>
-
-      <div class="train-control-item">
-        <label for="debug-command">Debug</label>
-        <div class="debug-controls">
-          <input
-            id="debug-command"
-            type="text"
-            [value]="debugCommand()"
-            (input)="onDebugCommandChange($event)"
-            placeholder="<D HAL SHOW>"
-            class="train-input"
-          />
-          <button class="focus-btn" (click)="sendDebugCommand()">Send</button>
-        </div>
-      </div>
-    </div>
-  }
   <div class="button-group">
     <div class="controls-column">
       <div class="action-controls">

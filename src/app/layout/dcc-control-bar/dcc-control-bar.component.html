@@ -1,0 +1,54 @@
+<div class="dcc-bar">
+  <div class="dcc-item">
+    <span class="dcc-label">Loco</span>
+    <input
+      id="loco-address"
+      type="number"
+      min="1"
+      max="10239"
+      [value]="locoAddress()"
+      (change)="onLocoAddressChange($event)"
+      class="dcc-input"
+    />
+  </div>
+
+  <button
+    class="dcc-power"
+    [class.active]="trackPower()"
+    (click)="toggleTrackPower()"
+  >
+    Power
+  </button>
+
+  <div class="dcc-item dcc-item--inline">
+    <span class="dcc-label">Speed: {{ locoSpeed() }}</span>
+    <div class="dcc-speed-buttons">
+      <button class="dcc-small-btn" (click)="adjustSpeedBy(1)">+</button>
+      <button class="dcc-small-btn" (click)="adjustSpeedBy(-1)">-</button>
+    </div>
+  </div>
+
+  <button class="dcc-direction" (click)="toggleDirection()">
+    {{ directionLabel() }}
+  </button>
+
+  <button
+    class="dcc-invert"
+    [class.active]="invertDirectionDisplay()"
+    (click)="toggleDirectionDisplay()"
+    title="Invert direction label"
+  >
+    Swap
+  </button>
+
+  <div class="dcc-command">
+    <input
+      class="dcc-command-input"
+      type="text"
+      placeholder="<F 3 0 1>"
+      [value]="debugCommand()"
+      (input)="onDebugCommandChange($event)"
+    />
+    <button class="dcc-command-btn" (click)="sendDebugCommand()">Send</button>
+  </div>
+</div>

@@ -11,6 +11,7 @@ import { DccService } from '../../services/dcc';
 export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   @ViewChild('videoElement') videoElement!: ElementRef<HTMLVideoElement>;
   dccService = inject(DccService);
+  functionNumbers = Array.from({ length: 29 }, (_, i) => i); // DCC functions F0-F28
   errorMessage: string = '';
   isRecording = signal(false);
   recordingTime = signal('00:00');
@@ -123,6 +124,10 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
         console.error('Failed to set direction:', error);
       }
     }
+  }
+
+  toggleDirection(): Promise<void> {
+    return this.setDirection(!this.locoDirection());
   }
 
   async toggleFunction(funcNum: number): Promise<void> {
