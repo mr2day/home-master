@@ -57,12 +57,12 @@
 .button-group {
   position: fixed;
   right: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 3rem;
+  transform: none;
   display: flex;
   flex-direction: row;
   gap: 1.5rem;
-  align-items: flex-end;
+  align-items: flex-start;
 }
 
 .controls-column {
@@ -76,7 +76,7 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  align-items: flex-end;
+  align-items: center;
 }
 
 .focus-control {
@@ -221,24 +221,6 @@
   height: auto;
   justify-content: flex-end;
   min-height: 2rem;
-
-  .recording-indicator {
-    color: #f44336;
-    font-weight: 600;
-    font-size: 14px;
-    animation: blink 1s ease-in-out infinite;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .recording-time {
-    color: #999;
-    font-weight: 600;
-    font-size: 14px;
-    min-width: 50px;
-    text-align: right;
-  }
 }
 
 .recording-dot {
@@ -312,8 +294,8 @@
   flex-direction: column;
   gap: 1rem;
   width: auto;
-  justify-content: flex-end;
-  align-items: flex-end;
+  justify-content: center;
+  align-items: center;
 }
 
 @keyframes blink {

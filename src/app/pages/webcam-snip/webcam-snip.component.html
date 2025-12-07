@@ -66,20 +66,15 @@
   <div class="button-group">
     <div class="controls-column">
       <div class="action-controls">
-        <div class="record-info">
-          @if (isRecording()) {
-            <span class="recording-indicator"><span class="recording-dot"></span> Recording</span>
-            <span class="recording-time">{{ recordingTime() }}</span>
-          }
-          @if (dccService.isConnected()) {
-            <span class="dcc-connected">DCC Connected</span>
-          }
-        </div>
         <div class="buttons">
           <h-button
-            [label]="isRecording() ? 'Stop' : 'Record'"
+            [label]="isRecording() ? 'Recording' : 'Record'"
             [size]="'sm'"
             [ratio]="'square'"
+            [ledState]="isRecording() ? 'on' : 'off'"
+            [ledColor]="'red'"
+            [ledBlink]="isRecording()"
+            [showAsyncStates]="false"
             [action]="toggleRecordingAction"
           ></h-button>
           <h-button
@@ -89,9 +84,10 @@
             [action]="snipAction"
           ></h-button>
           <h-button
-            [label]="dccService.isConnected() ? 'Disconnect' : 'Connect DCC'"
+            [label]="dccService.isConnected() ? 'DCC Connected' : 'Connect DCC'"
             [size]="'sm'"
             [ratio]="'square'"
+            [ledState]="dccService.isConnected() ? 'on' : 'off'"
             [action]="toggleDccConnectionAction"
           ></h-button>
           @if (dccService.isConnected()) {

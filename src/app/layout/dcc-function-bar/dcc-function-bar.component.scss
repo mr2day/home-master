@@ -18,6 +18,7 @@
   font-weight: 800;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
 
   &:hover {
     background-color: #363636;
@@ -25,10 +26,22 @@
     border-color: #666;
   }
 
-  &.active {
-    background-color: #4caf50;
-    color: #fff;
-    border-color: #4caf50;
-    box-shadow: 0 0 0 1px rgba(76, 175, 80, 0.3);
+  &::before {
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: 5px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #555;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.4);
+    pointer-events: none;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  &.active::before {
+    background: #4caf50;
+    box-shadow: 0 0 6px rgba(76, 175, 80, 0.8);
   }
 }

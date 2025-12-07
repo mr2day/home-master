@@ -1,4 +1,4 @@
-import { Component, Input, computed, signal } from '@angular/core';
+import { Component, Input, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { NgClass } from '@angular/common';
 
@@ -14,13 +14,10 @@ export class HButtonComponent {
   @Input() ratio: 'square' | 'rectangle' = 'rectangle';
   @Input() action?: () => Promise<void>;
   @Input() routerLink?: string | any[];
-
-  labelWords = computed(() => {
-    if (this.ratio === 'square') {
-      return this.label.split(/\s+/);
-    }
-    return [this.label];
-  });
+  @Input() ledState: 'on' | 'off' | null = null;
+  @Input() ledColor: 'green' | 'red' = 'green';
+  @Input() ledBlink: boolean = false;
+  @Input() showAsyncStates: boolean = true;
 
   isLoading = signal(false);
   resultState = signal<'success' | 'error' | null>(null);
@@ -29,6 +26,20 @@ export class HButtonComponent {
 
   async handleClick(): Promise<void> {
     if (this.isLoading()) return;
+
+    if (!this.showAsyncStates) {
+      if (this.action) {
+        await this.action();
+      }
+      if (this.routerLink) {
+        if (typeof this.routerLink === 'string') {
+          await this.router.navigateByUrl(this.routerLink);
+        } else if (Array.isArray(this.routerLink)) {
+          await this.router.navigate(this.routerLink as any[]);
+        }
+      }
+      return;
+    }
 
     const startTime = Date.now();
     this.isLoading.set(true);
@@ -64,5 +75,9 @@ export class HButtonComponent {
         this.resultState.set(null);
       }, 2000);
     }
+  }
+
+  labelWords(): string[] {
+    return this.ratio === 'square' ? this.label.split(/\s+/) : [this.label];
   }
 }

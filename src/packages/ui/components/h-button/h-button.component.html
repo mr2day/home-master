@@ -1,16 +1,24 @@
 <button class="h-button" [ngClass]="['h-button--' + size, 'h-button--' + ratio]" (click)="handleClick()" [disabled]="isLoading()">
+  @if (ledState !== null) {
+    <div
+      class="h-button__led"
+      [class.h-button__led--on]="ledState === 'on'"
+      [class.h-button__led--red]="ledColor === 'red'"
+      [class.h-button__led--blink]="ledBlink && ledState === 'on'"
+    ></div>
+  }
   <div class="h-button__content" [class.h-button__content--faded]="isLoading() || resultState()">
     @for (word of labelWords(); track $index) {
       <div class="h-button__word">{{ word }}</div>
     }
   </div>
-  @if (isLoading()) {
+  @if (showAsyncStates && isLoading()) {
     <div class="h-button__loader"></div>
   }
-  @if (resultState() === 'success') {
-    <div class="h-button__result h-button__result--success">✓</div>
+  @if (showAsyncStates && resultState() === 'success') {
+    <div class="h-button__result h-button__result--success">&#10003;</div>
   }
-  @if (resultState() === 'error') {
-    <div class="h-button__result h-button__result--error">✕</div>
+  @if (showAsyncStates && resultState() === 'error') {
+    <div class="h-button__result h-button__result--error">&#10007;</div>
   }
 </button>
