@@ -9,10 +9,9 @@ import { DccService } from '../../services/dcc';
 })
 export class DccControlBarComponent {
   dccService = inject(DccService);
-  invertDirectionDisplay = signal(false);
   debugCommand = signal('');
   arrowLeft = computed(() =>
-    this.invertDirectionDisplay()
+    this.dccService.invertDirectionDisplay()
       ? this.dccService.locoDirection()
       : !this.dccService.locoDirection()
   );
@@ -66,7 +65,7 @@ export class DccControlBarComponent {
   }
 
   toggleDirectionDisplay(): void {
-    this.invertDirectionDisplay.update(v => !v);
+    this.dccService.setInvertDisplay(!this.dccService.invertDirectionDisplay());
   }
 
   onDebugCommandChange(event: Event): void {

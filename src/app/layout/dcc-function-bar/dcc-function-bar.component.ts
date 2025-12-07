@@ -10,15 +10,15 @@ import { DccService } from '../../services/dcc';
 export class DccFunctionBarComponent {
   dccService = inject(DccService);
   functionNumbers = Array.from({ length: 29 }, (_, i) => i);
-  activeFunctions = new Set<number>([0]); // F0 (headlights) is typically on by default
 
   isActive(fn: number): boolean {
-    return this.activeFunctions.has(fn);
+    return this.dccService.activeFunctions().has(fn);
   }
 
   async toggleFunction(fn: number): Promise<void> {
     const addr = this.dccService.locoAddress();
-    const isOn = this.activeFunctions.has(fn);
+    const currentSet = new Set(this.dccService.activeFunctions());
+    const isOn = currentSet.has(fn);
 
     if (!this.dccService.isConnected()) return;
 
@@ -26,11 +26,11 @@ export class DccFunctionBarComponent {
     try {
       await this.dccService.sendCommand(`<F ${addr} ${fn} ${nextOn ? 1 : 0}>`);
       if (nextOn) {
-        this.activeFunctions.add(fn);
+        currentSet.add(fn);
       } else {
-        this.activeFunctions.delete(fn);
+        currentSet.delete(fn);
       }
-      this.activeFunctions = new Set(this.activeFunctions);
+      this.dccService.updateFunctions(currentSet);
     } catch (error) {
       console.error(`Failed to toggle function ${fn}:`, error);
     }
