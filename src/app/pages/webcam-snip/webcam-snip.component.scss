@@ -236,19 +236,26 @@
   font-size: 14px;
 }
 
-.train-controls {
+.train-controls-bottom {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 1.5rem;
-  align-items: flex-end;
-  margin-bottom: 1.5rem;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.7);
+  padding: 1rem 1.5rem;
+  border-radius: 0.5rem;
+  backdrop-filter: blur(10px);
 }
 
-.train-control-section {
+.train-control-item {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  align-items: flex-end;
+  align-items: center;
 
   label {
     color: #999;
@@ -259,9 +266,14 @@
   }
 }
 
+.speed-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .train-input {
   box-sizing: border-box;
-  width: 100px;
+  width: 80px;
   padding: 0.5rem;
   background-color: #333;
   color: #999;
@@ -280,44 +292,6 @@
   &::selection {
     background-color: #999;
     color: #222;
-  }
-}
-
-.speed-slider {
-  width: 200px;
-  height: 6px;
-  background: #333;
-  border-radius: 3px;
-  outline: none;
-  appearance: none;
-  border: 1px solid #444;
-
-  &::-webkit-slider-thumb {
-    appearance: none;
-    width: 18px;
-    height: 18px;
-    background: #999;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: background 0.2s ease;
-
-    &:hover {
-      background: #fff;
-    }
-  }
-
-  &::-moz-range-thumb {
-    width: 18px;
-    height: 18px;
-    background: #999;
-    border-radius: 50%;
-    cursor: pointer;
-    border: none;
-    transition: background 0.2s ease;
-
-    &:hover {
-      background: #fff;
-    }
   }
 }
 

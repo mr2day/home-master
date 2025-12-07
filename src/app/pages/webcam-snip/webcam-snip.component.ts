@@ -109,6 +109,10 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  adjustSpeedBy(delta: number): void {
+    this.setLocoSpeed(this.locoSpeed() + delta);
+  }
+
   async toggleDirection(): Promise<void> {
     const newDirection = !this.locoDirection();
     this.locoDirection.set(newDirection);
