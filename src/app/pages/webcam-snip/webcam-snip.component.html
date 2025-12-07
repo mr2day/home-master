@@ -115,6 +115,21 @@
           }
         </div>
       </div>
+
+      <div class="train-control-item">
+        <label for="debug-command">Debug</label>
+        <div class="debug-controls">
+          <input
+            id="debug-command"
+            type="text"
+            [value]="debugCommand()"
+            (input)="onDebugCommandChange($event)"
+            placeholder="<D HAL SHOW>"
+            class="train-input"
+          />
+          <button class="focus-btn" (click)="sendDebugCommand()">Send</button>
+        </div>
+      </div>
     </div>
   }
   <div class="button-group">

@@ -62,6 +62,7 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
   locoDirection = signal(true); // true = forward, false = reverse
   trackPower = signal(false);
   activeFunctions = signal<Set<number>>(new Set());
+  debugCommand = signal('');
 
   // Train control actions
   async toggleTrackPower(): Promise<void> {
@@ -148,6 +149,24 @@ export class WebcamSnipComponent implements AfterViewInit, OnDestroy {
 
   isFunctionActive(funcNum: number): boolean {
     return this.activeFunctions().has(funcNum);
+  }
+
+  onDebugCommandChange(event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
+    this.debugCommand.set(value);
+  }
+
+  async sendDebugCommand(): Promise<void> {
+    const cmd = this.debugCommand().trim();
+    if (!cmd) return;
+    if (this.dccService.isConnected()) {
+      try {
+        await this.dccService.sendCommand(cmd);
+        console.log(`Debug command sent: ${cmd}`);
+      } catch (error) {
+        console.error('Failed to send debug command:', error);
+      }
+    }
   }
 
   ngAfterViewInit(): void {

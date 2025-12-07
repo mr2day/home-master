@@ -312,6 +312,12 @@
   justify-content: flex-end;
 }
 
+.debug-controls {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .function-btn {
   width: 45px;
   height: 32px;
