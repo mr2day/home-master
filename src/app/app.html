@@ -1,2 +1,7 @@
 <app-header></app-header>
 <router-outlet></router-outlet>
+<app-footer>
+  @if (dccService.isConnected()) {
+    <app-dcc-function-bar></app-dcc-function-bar>
+  }
+</app-footer>

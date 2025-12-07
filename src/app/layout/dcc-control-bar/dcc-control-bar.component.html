@@ -1,35 +1,58 @@
 <div class="dcc-bar">
-  <div class="dcc-item">
+  <div class="dcc-item dcc-item--loco">
     <span class="dcc-label">Loco</span>
-    <input
-      id="loco-address"
-      type="number"
-      min="1"
-      max="10239"
-      [value]="locoAddress()"
-      (change)="onLocoAddressChange($event)"
-      class="dcc-input"
-    />
+    <div class="dcc-loco-input">
+      <input
+        id="loco-address"
+        type="number"
+        min="1"
+        max="10239"
+        [value]="dccService.locoAddress()"
+        (change)="onLocoAddressChange($event)"
+        class="dcc-input dcc-input--shrink"
+      />
+      <div class="dcc-loco-stepper">
+        <button class="dcc-stepper-btn" (click)="adjustLocoAddress(1)">+</button>
+        <button class="dcc-stepper-btn" (click)="adjustLocoAddress(-1)">-</button>
+      </div>
+    </div>
   </div>
 
   <button
     class="dcc-power"
-    [class.active]="trackPower()"
+    [class.active]="dccService.trackPower()"
     (click)="toggleTrackPower()"
   >
     Power
   </button>
 
-  <div class="dcc-item dcc-item--inline">
-    <span class="dcc-label">Speed: {{ locoSpeed() }}</span>
-    <div class="dcc-speed-buttons">
-      <button class="dcc-small-btn" (click)="adjustSpeedBy(1)">+</button>
-      <button class="dcc-small-btn" (click)="adjustSpeedBy(-1)">-</button>
+  <div class="dcc-item dcc-item--loco">
+    <span class="dcc-label">Speed</span>
+    <div class="dcc-loco-input">
+      <input
+        type="number"
+        min="0"
+        max="126"
+        [value]="dccService.locoSpeed()"
+        (change)="onSpeedInputChange($event)"
+        class="dcc-input dcc-input--shrink"
+      />
+      <div class="dcc-loco-stepper">
+        <button class="dcc-stepper-btn" (click)="adjustSpeedBy(1)">+</button>
+        <button class="dcc-stepper-btn" (click)="adjustSpeedBy(-1)">-</button>
+      </div>
     </div>
   </div>
 
   <button class="dcc-direction" (click)="toggleDirection()">
-    {{ directionLabel() }}
+    <svg
+      class="dcc-direction__icon"
+      [class.dcc-direction__icon--left]="arrowLeft()"
+      viewBox="0 0 48 24"
+      aria-hidden="true"
+    >
+      <path d="M2 12 L26 4 L26 9 L46 9 L46 15 L26 15 L26 20 Z" />
+    </svg>
   </button>
 
   <button

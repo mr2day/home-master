@@ -1,0 +1,12 @@
+<div class="dcc-function-bar">
+  @for (fn of functionNumbers; track fn) {
+    <button
+      class="dcc-fn-btn"
+      [class.active]="isActive(fn)"
+      (click)="toggleFunction(fn)"
+      [title]="'F' + fn"
+    >
+      F{{ fn }}
+    </button>
+  }
+</div>

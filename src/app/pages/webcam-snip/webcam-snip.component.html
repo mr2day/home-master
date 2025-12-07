@@ -42,20 +42,6 @@
         <button class="focus-btn" (click)="adjustFocusBy(-10)">-</button>
       </div>
     </div>
-    <div class="function-control">
-      <label>Functions</label>
-      <div class="function-buttons">
-        @for (fn of functionNumbers; track fn) {
-          <button
-            class="function-btn function-btn--compact"
-            [class.active]="isFunctionActive(fn)"
-            (click)="toggleFunction(fn)"
-          >
-            F{{ fn }}
-          </button>
-        }
-      </div>
-    </div>
     <div class="focus-control">
       <label for="resolution-input">Resolution</label>
       <div class="focus-input-group">

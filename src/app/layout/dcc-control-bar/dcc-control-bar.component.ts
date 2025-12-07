@@ -9,45 +9,41 @@ import { DccService } from '../../services/dcc';
 })
 export class DccControlBarComponent {
   dccService = inject(DccService);
-  locoAddress = signal(3);
-  locoSpeed = signal(0);
-  locoDirection = signal(true); // true = forward
-  trackPower = signal(false);
   invertDirectionDisplay = signal(false);
   debugCommand = signal('');
-  directionLabel = computed(() =>
+  arrowLeft = computed(() =>
     this.invertDirectionDisplay()
-      ? (this.locoDirection() ? '<- Forward' : 'Backward ->')
-      : (this.locoDirection() ? 'Forward ->' : '<- Backward')
+      ? this.dccService.locoDirection()
+      : !this.dccService.locoDirection()
   );
 
   onLocoAddressChange(event: Event): void {
     const value = parseInt((event.target as HTMLInputElement).value, 10);
     if (!isNaN(value) && value >= 1 && value <= 10239) {
-      this.locoAddress.set(value);
+      this.dccService.setLocoAddress(value);
     }
   }
 
+  adjustLocoAddress(delta: number): void {
+    const next = Math.max(1, Math.min(10239, this.dccService.locoAddress() + delta));
+    this.dccService.setLocoAddress(next);
+  }
+
   async toggleTrackPower(): Promise<void> {
-    const newState = !this.trackPower();
+    const newState = !this.dccService.trackPower();
     if (!this.dccService.isConnected()) return;
-    try {
-      await this.dccService.sendCommand(newState ? '<1>' : '<0>');
-      this.trackPower.set(newState);
-    } catch (error) {
-      console.error('Failed to toggle track power:', error);
-    }
+    await this.dccService.setTrackPower(newState);
   }
 
   async setLocoSpeed(speed: number): Promise<void> {
     const clampedSpeed = Math.max(0, Math.min(126, speed));
-    this.locoSpeed.set(clampedSpeed);
+    this.dccService.locoSpeed.set(clampedSpeed);
     if (this.dccService.isConnected()) {
       try {
         await this.dccService.setLocoSpeed(
-          this.locoAddress(),
+          this.dccService.locoAddress(),
           clampedSpeed,
-          this.locoDirection()
+          this.dccService.locoDirection()
         );
       } catch (error) {
         console.error('Failed to set speed:', error);
@@ -56,26 +52,17 @@ export class DccControlBarComponent {
   }
 
   adjustSpeedBy(delta: number): void {
-    this.setLocoSpeed(this.locoSpeed() + delta);
+    this.setLocoSpeed(this.dccService.locoSpeed() + delta);
   }
 
   async setDirection(forward: boolean): Promise<void> {
-    this.locoDirection.set(forward);
     if (this.dccService.isConnected()) {
-      try {
-        await this.dccService.setLocoSpeed(
-          this.locoAddress(),
-          this.locoSpeed(),
-          forward
-        );
-      } catch (error) {
-        console.error('Failed to set direction:', error);
-      }
+      await this.dccService.setLocoDirection(forward);
     }
   }
 
   toggleDirection(): Promise<void> {
-    return this.setDirection(!this.locoDirection());
+    return this.setDirection(!this.dccService.locoDirection());
   }
 
   toggleDirectionDisplay(): void {
@@ -84,6 +71,13 @@ export class DccControlBarComponent {
 
   onDebugCommandChange(event: Event): void {
     this.debugCommand.set((event.target as HTMLInputElement).value);
+  }
+
+  onSpeedInputChange(event: Event): void {
+    const value = parseInt((event.target as HTMLInputElement).value, 10);
+    if (!isNaN(value)) {
+      this.setLocoSpeed(value);
+    }
   }
 
   async sendDebugCommand(): Promise<void> {

@@ -26,6 +26,10 @@ export class DccService {
   private reader: ReadableStreamDefaultReader<Uint8Array> | null = null;
   private writer: WritableStreamDefaultWriter<Uint8Array> | null = null;
 
+  locoAddress = signal(3);
+  locoSpeed = signal(0);
+  locoDirection = signal(true);
+  trackPower = signal(false);
   isConnected = signal(false);
   lastResponse = signal('');
 
@@ -49,6 +53,7 @@ export class DccService {
         this.writer = this.port.writable.getWriter();
       }
 
+      this.trackPower.set(false);
       console.log('Connected to DCC-EX');
     } catch (error) {
       console.error('Failed to connect:', error);
@@ -73,6 +78,7 @@ export class DccService {
       this.port = null;
     }
 
+    this.trackPower.set(false);
     this.isConnected.set(false);
     console.log('Disconnected from DCC-EX');
   }
@@ -94,6 +100,10 @@ export class DccService {
     }
   }
 
+  setLocoAddress(address: number): void {
+    this.locoAddress.set(address);
+  }
+
   async sendCommand(command: string): Promise<void> {
     if (!this.writer) {
       throw new Error('Not connected');
@@ -106,6 +116,11 @@ export class DccService {
     console.log('Sent:', command);
   }
 
+  async setTrackPower(on: boolean): Promise<void> {
+    await this.sendCommand(on ? '<1>' : '<0>');
+    this.trackPower.set(on);
+  }
+
   // Simple test command
   async getStatus(): Promise<void> {
     await this.sendCommand('<s>');
@@ -113,8 +128,16 @@ export class DccService {
 
   // Control a locomotive
   async setLocoSpeed(address: number, speed: number, forward: boolean): Promise<void> {
+    this.locoAddress.set(address);
+    this.locoSpeed.set(speed);
+    this.locoDirection.set(forward);
     const direction = forward ? 1 : 0;
     await this.sendCommand(`<t 1 ${address} ${speed} ${direction}>`);
+  }
+
+  async setLocoDirection(forward: boolean): Promise<void> {
+    this.locoDirection.set(forward);
+    await this.setLocoSpeed(this.locoAddress(), this.locoSpeed(), forward);
   }
 
   // Emergency stop
