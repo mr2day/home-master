@@ -54,6 +54,10 @@ export class DccControlBarComponent {
     this.setLocoSpeed(this.dccService.locoSpeed() + delta);
   }
 
+  brake(): Promise<void> {
+    return this.setLocoSpeed(0);
+  }
+
   async setDirection(forward: boolean): Promise<void> {
     if (this.dccService.isConnected()) {
       await this.dccService.setLocoDirection(forward);

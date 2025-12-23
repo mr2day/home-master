@@ -171,6 +171,26 @@
   }
 }
 
+.dcc-brake {
+  height: 36px;
+  padding: 0.25rem 0.8rem;
+  background-color: #2f2f2f;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 0.4rem;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.02em;
+
+  &:hover {
+    background-color: #3a3a3a;
+    color: #fff;
+    border-color: #777;
+  }
+}
+
 .dcc-speed-buttons {
   display: flex;
   gap: 0.35rem;
